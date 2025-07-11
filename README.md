@@ -1,2 +1,2 @@
 # pg-web-erp
-Web ERP system on PHP+PDO+PostgreSQL stack
+Web ERP system based on PHP + PDO + PostgreSQL stack technology
