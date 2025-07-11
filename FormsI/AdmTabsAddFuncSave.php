@@ -2,6 +2,7 @@
 session_start();
 
 include ("../setup/common_pg.php");
+include ("common_func.php");
 
 BeginProc();
 CheckLogin1 ();
@@ -24,8 +25,8 @@ if ($Id==''){
     if ($New==1) {  
       //$query = "select MAX(Id) MX FROM AdmTabsAddFunc ".
       //         "WHERE ";
-      //$sql2 = $mysqli->query ($query)
-      //               or die("Invalid query:<br>$query<br>" . $mysqli->error);
+      //$sql2 = $pdo->query ($query)
+      //               or die("Invalid query:<br>$query<br>" . $pdo->error);
       //$MX=0;
       //if ($dp = $sql2->fetch_assoc()) {
       //  $MX=$dp['MX'];
@@ -72,7 +73,7 @@ if ($HeadRec = $STH->fetch(PDO::FETCH_ASSOC)) {
   //    $_REQUEST['OpDate']=date('Y-m-d');
   //    $D=$_REQUEST['OpDate'];
   //  }
-  //  $_REQUEST['DocNo'] = GetNextNo ( $mysqli, 'BankOp', $D);
+  //  $_REQUEST['DocNo'] = GetNextNo ( $pdo, 'BankOp', $D);
   //}
 
 
@@ -87,6 +88,108 @@ if ($_REQUEST['AddFunc']==10) {
     $_REQUEST['Param'] = "[MasterTab=".$_REQUEST['MasterTabName'].']';
   }
 }
+  else
+  if ($_REQUEST['AddFunc']==20) {
+    // MasterTab fileds correspondence
+    $FldsCorr=array();
+
+    foreach ($_REQUEST['FldT'] as $Indx => $CorrIndx) {
+      if ($CorrIndx) {
+        $FldsCorr[$CorrIndx]['FldT']=$Indx; 
+      }
+    }
+
+    foreach ($_REQUEST['FldM'] as $Indx => $CorrIndx) {
+      if($CorrIndx) {  
+      
+        $FldsCorr[$CorrIndx]['FldM']=$Indx; 
+      }
+    }
+
+
+    //echo ("<hr>FldsCorr= ");
+    //print_r($FldsCorr);
+    //echo ("<hr>");
+
+    $MasterTab = GetMasterTabName($pdo, $TabName);
+    $MTabCode =GetTabCode ($pdo, $MasterTab); 
+
+    
+    $Txt='';
+
+    foreach ($FldsCorr as $Indx => $Arr) {
+      if (empty ($Arr['FldT']) ) {
+        die ("<br> For $Idnx tie do not found Field from correspondence"); 
+      }
+
+      if (empty ($Arr['FldM']) ) {
+        die ("<br> For $Idnx tie do not found Field Master table correspondence"); 
+      }
+
+      $FldT= GetFldName ($pdo, $TabCode, $Arr['FldT']);
+      $FldM= GetFldName ($pdo, $MTabCode, $Arr['FldM']);
+
+      $Txt.= "[FldT=$FldT;FldM=$FldM]";
+    }
+    $Upd=1;
+
+    echo ("<br>Txt=$Txt<br>");
+    $_REQUEST['Param']=$Txt;
+    //==========================================================================
+
+  }
+  else
+  if ($_REQUEST['AddFunc']==30) {
+    // MasterTab fileds COPY
+    $FldsCorr=array();
+
+    foreach ($_REQUEST['FldT'] as $Indx => $CorrIndx) {
+      if ($CorrIndx) {
+        $FldsCorr[$CorrIndx]['FldT']=$Indx; 
+      }
+    }
+
+    foreach ($_REQUEST['FldM'] as $Indx => $CorrIndx) {
+      if($CorrIndx) {  
+      
+        $FldsCorr[$CorrIndx]['FldM']=$Indx; 
+      }
+    }
+
+
+    //echo ("<hr>FldsCorr= ");
+    //print_r($FldsCorr);
+    //echo ("<hr>");
+
+    $MasterTab = GetMasterTabName($pdo, $TabName);
+    $MTabCode =GetTabCode ($pdo, $MasterTab); 
+
+    
+    $Txt='';
+
+    foreach ($FldsCorr as $Indx => $Arr) {
+      if (empty ($Arr['FldT']) ) {
+        die ("<br> For $Idnx tie do not found Field from correspondence"); 
+      }
+
+      if (empty ($Arr['FldM']) ) {
+        die ("<br> For $Idnx tie do not found Field Master table correspondence"); 
+      }
+
+      $FldT= GetFldName ($pdo, $TabCode, $Arr['FldT']);
+      $FldM= GetFldName ($pdo, $MTabCode, $Arr['FldM']);
+
+      $Txt.= "[FldT=$FldT;FldM=$FldM]";
+    }
+    $Upd=1;
+
+    echo ("<br>Txt=$Txt<br>");
+    $_REQUEST['Param']=$Txt;
+    
+    //==========================================================================
+
+  }
+
 
 ECHO ("<hr>");
 print_r($_REQUEST);

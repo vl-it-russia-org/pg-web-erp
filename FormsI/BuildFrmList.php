@@ -48,7 +48,7 @@ $STH = $pdo->prepare($query);
 $STH->execute($PdoArr);
   
 $TabName='';
-$TabEditable='$Editable=1;';
+$TabEditable='';
 if ($dp2 = $STH->fetch(PDO::FETCH_ASSOC)) {
   $TabName=$dp2['TabName'];
   if ($dp2['TabEditable']!='') {
@@ -83,6 +83,7 @@ $DateDiv='';
 
 
 $AutoIncArr=array();
+
 
 while ($dp2 = $STH->fetch(PDO::FETCH_ASSOC)) {
   $Fields[$dp2['ParamName']]=$dp2;
@@ -303,6 +304,11 @@ $S.=");\r\n".
 '
 CheckTkn();
 $ArrPostParams=array();
+
+// Какие параметры передаем в форму '.$TabName.'Card.php
+$CardArr=array();
+$CardArr[\'FrmTkn\']=MakeTkn(1); 
+
 $BegPos = 0;'."\r\n".
   'if (!empty($_REQUEST[\'BegPos\'])) {'."\r\n".
   '  $BegPos = $_REQUEST[\'BegPos\'] +0;'."\r\n".
@@ -416,9 +422,10 @@ $S='echo (\'<hr><table><tr><td><form method=post action="'.$TabName.'Card.php">\
 echo (\'<form method=post action="'.$TabName.'GroupOp.php">\'.
         "<input type=submit  Name=OpType Value=\'".GetStr($pdo, \'Delete\')."\' 
           onclick=\'return confirm(\"Delete selected?\");\'></td></tr></table>" );
+MakeTkn();
 echo (\'<table class=LongTable><tr class="header">\');
 
-echo("<th><input type=checkbox onclick=\'return SelAll();\'></th>");
+echo("<th><input type=checkbox onclick=\'return SelAll();\'></th><th></th>");
 
 
 foreach ( $Fields as $Fld) {
@@ -449,7 +456,7 @@ if ($PKCnt==1) {
 else {
   $MS='';
   foreach ($PKFields as $Fld) {
-    $MS.="\r\n    ".'$PKValArr[\''.$Fld.'\']= $dp[\''.$Fld.'\'];';  
+    $MS.="\r\n  ".'$PKValArr[\''.$Fld.'\']= $dp[\''.$Fld.'\'];';  
   }
   $S.='
   $PKValArr=array();'.$MS.'
@@ -458,6 +465,26 @@ else {
   echo ("<td><input type=checkbox ID=\'Chk_$Cnt\' Name=Chk[$Cnt] value=\'$PKRes\'></td>");
   ';
 }
+
+foreach ($PKFields as $Fld) {
+  $S.="\r\n  ".
+      '$CardArr[\''.$Fld.'\']= $dp[\''.$Fld.'\'];';  
+}
+
+$S.="\r\n  ".
+    '$Json = base64_encode(json_encode ($CardArr));
+
+  $CrdNewWindow =GetStr($pdo, \'CrdInNewWnd\');
+  $CrdHere =GetStr($pdo, \'CrdInCurrWnd\');';
+
+
+$S.="\r\n    ".
+    'echo("<td align=center>'.
+    "\r\n        ".
+    ' <button type=button onclick=\"openFormWithPost(\''.$TabName.'Card.php\', \'$Json\', \'_self\')\" title=\'$CrdHere\'>&#9900;</button>'.
+    "\r\n        ".
+    ' <button type=button onclick=\"openFormWithPost(\''.$TabName.'Card.php\', \'$Json\', \'_blank\')\" title=\'$CrdNewWindow\'>&#9856;</button>'.
+    ' </td>");';
 
 
 foreach ($Fields as $Fld=>$Arr) {
@@ -494,6 +521,12 @@ foreach ($Fields as $Fld=>$Arr) {
   echo("<td align=right> $OW </td>");
   ';
 
+  }
+  else
+  if ($Fields[$Fld]['DocParamType']==30) {
+    $S.='echo(\'<td align=center>\'.$dp[$Fld]."</td>");
+  ';
+  
   }
   else {
     $S.='echo(\'<td>\'.$dp[$Fld]."</td>");
@@ -842,100 +875,9 @@ echo ("<br><a href='../Forms/{$TabName}List.php'>Print XLS $TabName</a> ");
 //                             GroupOp 
 //--------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------
-$file = fopen("../Forms/{$TabName}GroupOp.php","w");
+echo ("<br> Make group op");
 
-fwrite($file,"<?php\r\n");
-fwrite($file,"session_start();\r\n");
-
-$S= '
-include "'.$DefDir.'setup/common_pg.php";
-BeginProc();
-?>
-<html>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" href="style.css">
-<meta http-equiv="Content-Language" content="ru">
-<title>'.$TabName.' Card</title></head>
-<body>
-<?php
-//CheckLogin1 ();
-CheckRight1 ($pdo, "Admin");
-
-//print_r($_REQUEST);
-//die();
-'.
-"\r\n";
-fwrite($file,$S);
-
-$FldAccArr=array ();
-
-$S= '
-if (is_array($_REQUEST[\'Chk\'])) { 
-  $Res=\'\';
-  $Div=\'\';
-  foreach ( $_REQUEST[\'Chk\'] as $Indx=> $Val) {
-    ';
-    if ($PKCnt==1) {
-      $S.='
-      $V=addslashes ($Val);
-      $Res.="$Div\'$V\'";
-      $Div=\',\';
-    }
-    if ($_REQUEST[\'OpType\']== GetStr($pdo, \'Delete\')) {
-      $query = "delete from \"'.$TabName.'\" ".
-               " WHERE ('.$LastPK.' in $Res) ";
-      $sql2 = $pdo->query ($query)
-                 or die("Invalid query:<br>$query<br>" . $pdo->error());
-      
-    }  
-    ';
-    }
-    else {
-      $S.='
-      $PKValArr=json_decode(base64_decode($Val), true);
-      ';
-      $Div='';
-      
-      $PKStr='';
-      $VDiv='';
-      foreach ($PKFields as $Fld) {
-        $S.="\r\n    ".
-            '$V'.$VDiv.'="'.$Div.'\'".addslashes($PKValArr[\''.$Fld.'\'])."\'";';
-        $PKStr.= "$Div$Fld";
-        $Div=',';
-        $VDiv='.'; 
-      }
-      $S.='
-      $Res.="$Div($V)";
-      $Div=",";
-    }
-    if ($_REQUEST[\'OpType\']== GetStr($pdo, \'Delete\')) {
-      $query = "delete from '.$TabName.' ".
-               " WHERE ( ('.$PKStr.') in ($Res) )";
-      $sql2 = $pdo->query ($query)
-                 or die("Invalid query:<br>$query<br>" . $pdo->error());
-      
-    }  
-    ';
-
-  }
-$S.="\r\n}\r\n".
-
-'echo (\'<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<link rel="stylesheet" type="text/css" href="style.css">\'.
-\'<META HTTP-EQUIV="REFRESH" CONTENT="1;URL='.$TabName.'List.php?\'.$LNK.\'">\'.
-\'<title>Save</title></head>
-<body>\');
-  
-  echo(\'<H2>Saved</H2>\');
-?>
-</body>
-</html>';
-
-fwrite($file,$S);
-
-fclose($file);
+include ("BuildFrmGroupOp.php");
 
 //--------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------
@@ -943,638 +885,32 @@ fclose($file);
 //                         Card
 //--------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------
-$file = fopen("../Forms/{$TabName}Card.php","w");
-
-fwrite($file,"<?php\r\n");
-fwrite($file,"session_start();\r\n");
-
-$S= '
-include ("../setup/common_pg.php");
-BeginProc();
-
-$TabName=\''.$TabName.'\';
-OutHtmlHeader ($TabName." card");
-
-
-// Checklogin1();'."\r\n";
-
-fwrite($file,$S);
-
-$FldAccArr=array ();
-
-if ($HaveRef) {
-  //echo ("<br> FOtherTab: ");
-  //print_r($FOtherTab);
-  $S= 'include "../js_module.php";'."\r\nOutPostReq();\r\n//------- For Ext Tables --------- ";
-  
-  echo ("<br> Extab1 = ");
-  print_r($ExtTab1);
-
-  foreach ($ExtTab1 as $II=>$EXT ) {
-    echo ("<br> $II -> $EXT ");
-
-    $S.="\r\n  ScriptSelectionTabs('$EXT$II', 'Select$EXT.php', '".
-        addslashes (GetStr($pdo, $EXT))."', '$II');";
-  }
-}
-else {
-  $S='';
-}
-
-$S.="\r\n\r\n";
-fwrite($file,$S);
-
-$S= "CheckRight1 (\$pdo, 'Admin');\r\n\r\n".
-'$FldNames=array(';
-$Div='';
-
-$Cnt=0;
-foreach ($Fields as $Fld=>$Arr) {
-  $S.="$Div'$Fld'";
-  $Div=',';
-
-  $Cnt++;
-  if ($Cnt==4) {
-    $S.="\r\n          ";
-    $Cnt=0;
-  }
-  
-  if ($Arr['DocParamType']==50) {
-    //$enS.="$enDiv'$Fld'";
-    //$enDiv=',';
-  }
-  //echo (" Fld:$Fld ");
-}
-
-$S.=");\r\n".$enS.");\r\n";
-
-$WH='';
-$DW='';
-
-$RR=0;
-$WW='';
-$WW1='';
-$LastFld='';
-
-$FullLink='';
-$DivFL='';
-
-//-------------------------------
-$PDO1='';
-$LPK='';
-
-$S.='$PdoArr = array();'."\r\n";  
-
-
-foreach ($PKFields as $PK) {
-  $RR++;
-  $S.='$'.$PK.'=$_REQUEST[\''.$PK."'];\r\n";
-  $S.='$PdoArr["'.$PK.'"]=$'.$PK.";\r\n";
-    
-  $WH.= $DW. '(\"'.$PK."\\\"=:".$PK.')';
-  if ($WW1!='') {
-    $WW.= ' AND '. $WW1;
-    $PDO1.='$PdoArr["'.$LPK.'"]= $'.$LPK.";\r\n";
-  }
-  
-  $LastFld=$PK;
-
-  $WW1= '(\"'.$PK."\\\"=:".$PK.')';
-  $DW=' AND ';
-  
-  $LPK=$PK;
-
-  $FullLink.=$DivFL.$PK.'=$'.$PK;
-  $DivFL='&';
-
-};
-
-//=================================================
-
-$FillNewFlds=array();
-
-
-// AdmFieldsAddFunc
-// Id, TabName, FldName, AddFunc
-$query = "select * from \"AdmFieldsAddFunc\" ". 
-         "where (\"TabName\" = :TabName) and (\"AddFunc\"=40) order by \"FldName\" "; 
-
-$PdoArr = array();
-$PdoArr['TabName']= $TabName;
-
-$STH = $pdo->prepare($query);
-$STH->execute($PdoArr);
-
-while ($dp22 = $STH->fetch(PDO::FETCH_ASSOC)) {
-  $FillNewFlds[$dp22['FldName']]=1;
-}
-
-//=================================================
-
-
-
-$S.='echo("<H3>".GetStr($pdo, \''.$TabName.'\')."</H3>");'."\r\n".
-  '  $dp=array();
-  $FullLink="'.$FullLink.'";
-
-  $query = "select * FROM \"'.$TabName.'\" ".
-           "WHERE '.$WH.'";
-  
-  try {
-  
-  $STH = $pdo->prepare($query);
-  $STH->execute($PdoArr);  
-  
-  if ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
-  }
-  
-  }
-  catch (PDOException $e) {
-    echo ("<hr> Line ".__LINE__."<br>");
-    echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
-    print_r($PdoArr);	
-    die ("<br> Error: ".$e->getMessage());
-  }  
-  
-  $New=$_REQUEST[\'New\'];
-
-'.$TabEditable.'
-if ($Editable) {
-';
-$FillNewFT=0;  
-
-foreach ($FillNewFlds as $Fld=>$V) {
-  if ($FillNewFT==0) {
-    $S.='  if ($New==1) {
-  ';
-    $FillNewFT=1;  
-  };
-
-  $S.='  $dp["'.$Fld.'"]= $_REQUEST["'.$Fld.'"];'."\r\n";
-}
-
-if ($FillNewFT==1) {
-  $S.='  }'."\r\n";
-}
-  
-$S.='  echo (\'<form method=post action="'.$TabName.'Save.php">\'.
-        "<input type=hidden Name=\'New\' value=\'$New\'>");
-  
-  echo ("<table><tr>");';
-
-fwrite($file,$S);
-
-//=================================================================
-$S="\r\n".
-
-
-//=================================================================
-
-
-
-$S="\r\n".'  $LN=0;';
-
-//=================================================
-
-$StatusFlds=array();
-
-// AdmFieldsAddFunc
-// Id, TabName, FldName, AddFunc
-$query = "select * from \"AdmFieldsAddFunc\" ". 
-         "where (\"TabName\" = :TabName) and (\"AddFunc\"=10) order by \"FldName\" "; 
-
-$STH = $pdo->prepare($query);
-$STH->execute($PdoArr);
-
-while ($dp22 = $STH->fetch(PDO::FETCH_ASSOC)) {
-  $StatusFlds[$dp22['FldName']]=1;
-}
-
-//=================================================
-
-
-if ($RR>1) {
-  $S="\r\n  ".'$PdoArr = array();'."\r\n  $PDO1".
-     "\r\n  if (".'$New==1) {'.
-     "\r\n      ".'$query = "select max(\"'.$PKFields[$RR-1].'\") \"MX\" ".'.
-     "\r\n      ".'"FROM \"'.$TabName.'\" ".'.
-     "\r\n      ".'" WHERE (1=1) '.$WW.'";'.
-     "\r\n      ".'$STH4 = $pdo->prepare($query);'.
-     "\r\n      ".'$STH4->execute($PdoArr);'.
-     "\r\n      ".'$LN=0;'.
-     "\r\n      ".'if ($dp4 = $STH4->fetch(PDO::FETCH_ASSOC)) {'.
-     "\r\n        ".'$LN=$dp4[\'MX\'];'.
-     "\r\n      ".'}'.
-     "\r\n      ".'$LN+=1;'.
-     "\r\n  ".'}'."\r\n";
-}
-
-foreach ($Fields as $Fld=>$Arr) {
-  $S.= "\r\n".'  $Fld=\''.$Fld.'\';
-  $OutVal= $dp[$Fld];';
-  if (in_array ($Fld, $PKFields)) {             
-    $S.="\r\n  echo (\"<input type=hidden Name='Old$Fld' ".
-        'value=\'$OutVal\'>");'.
-        "\r\n";
-  }
-  
-  $S.='  echo ("<td align=right><label for=\''.$Fld.'\'>".GetStr($pdo, $Fld).":</label></td><td>");'."\r\n";
-  
-  $FldType=$Arr['DocParamType'];
-  if (in_array ($Fld, $PKFields)) {
-    if (!empty($EnumFlds[$Fld])){
-      $S.='  echo ( EnumSelection($pdo, "'.$EnumFlds[$Fld].'", "'.$Fld.' ID=\'$Fld\' ", $OutVal));';
-    }
-    else {
-      $S.='  echo ("<input type=text Name=\'$Fld\'  ID=\'$Fld\' Value=\'{$'.$Fld.'}\' size=10 readonly>");';  
-    }
-  }
-  else {
-  
-  
-  
-  if ($FldType==10) {
-    // 10 EN Text50
-    if ($Arr['AddParam']=='') {
-      $S.='  echo ("<input type=text Name=\'$Fld\' ID=\'$Fld\' Value=\'{$dp[$Fld]}\' size=50>");';  
-    }
-    else {
-      $N=$Arr['AddParam']+0;
-      if ($N>100) {
-        $S.='  echo ("<textarea Name=\'$Fld\'  ID=\'$Fld\'  cols=50 rows=3>{$dp[$Fld]}</textarea>");';  
-      }
-      else 
-        $S.='  echo ("<input type=text Name=\'$Fld\'  ID=\'$Fld\' Value=\'{$dp[$Fld]}\' size='.$N.'>");';  
-    } 
-  }
-  else 
-  if ($FldType==15) {
-      $S.='  echo ("<textarea Name=\'$Fld\'  ID=\'$Fld\'  cols=50 rows=3>{$dp[$Fld]}</textarea>");';  
-  }
-  else
-  if ($FldType==20) {
-    // Number
-    if ($Arr['AddParam']=='') {
-      $S.='  echo ("<input type=number Name=\'$Fld\'  ID=\'$Fld\'  Value=\'{$dp[$Fld]}\'>");';  
-    }
-    else {
-      $S.='  echo ("<input type=number Name=\'$Fld\'  ID=\'$Fld\' Value=\'{$dp[$Fld]}\' step='.$Arr['AddParam'].'>");';  
-    } 
-  }
-  else 
-  if ($FldType==60) {
-    // Date
-    $S.='  echo ("<input type=date Name=\'$Fld\'  ID=\'$Fld\'  Value=\'{$dp[$Fld]}\'>");';  
-  }
-  
-  else 
-  if ($FldType==60) {
-    // Date
-    $S.='  echo ("<input type=\'datetime-local\' Name=\'$Fld\'  ID=\'$Fld\'  Value=\'{$dp[$Fld]}\'>");';  
-  }
-  
-  else 
-  if ($FldType==30) {
-    
-    $S.='  $Ch=\'\'; if ($dp[$Fld]==1) $Ch=\'Checked\';'.
-        "\r\n".'  echo ("<input type=checkbox Name=\'$Fld\'  ID=\'$Fld\' Value=1 $Ch>");';  
-  }
-  else 
-  if ($FldType==40) {
-  }
-  else 
-  if ($FldType==45) {
-  }
-  else 
-  if ($FldType==50) {
-    if (empty ($StatusFlds[$Fld]) ) {
-      $S.='  echo ( EnumSelection($pdo, "'.$Arr['AddParam'].'", "'.$Fld.' ID=\'$Fld\' ", $OutVal));';
-    }
-    else {
-      $S.='  echo ( "<b>".GetEnum($pdo, "'.$Arr['AddParam'].'", $OutVal)."</b>");';
-    }
-  }
-  } //------------------ 
-  
-  
-
-  //echo ("<br><br> --$Fld-- ");
-  //print_r ($ExtTab);
-  //echo ("<br><br> --$Fld-- ");
-  //print_r ($FOtherTab);
-
-
-  if (!empty($FOtherTab[$Fld])) {
-    $ET= $FOtherTab[$Fld];
-    //echo ("<br><br>-- OtherTab: ");
-    //print_r($ET);
-    
-    //echo ("<br><br>-- ExtTab3: ");
-    //print_r($ExtTab3);
-    //echo ("<br>");
-    
-    foreach ($ET as $Indx1=> $Arr1) {
-      
-      $ET1= $Arr1['TabName2'];
-      $SMI= $Arr1['Id'];
-      
-      $S.="\r\n".'  echo(" <input type=button value=\'...\' '.
-          'onclick=\'return Select'.$ET1.$SMI.'Fld(\"'.$Fld.'\"';
-      if (! empty($FromFldsConn[$SMI])) {
-        foreach ($FromFldsConn[$SMI] as $AI1=>$AIF1){
-          $S.=', \"'.$AIF1.'\"'; 
-        }
-      }
-
-      $S.=');\'>");'."\r\n";
-    }
-  }
-
-  $S.="\r\n".'  echo("</td>");'.
-  "\r\n".
-  '  echo ("</tr><tr>");'."\r\n";  
-} //-------------------------------- Fld foreach --------------------------
-
-fwrite($file,$S);
-
-$S="\r\n  MakeTkn();\r\n".
-'  echo ("<td colspan=2 align=right>'.
-   '<input type=submit value=\'".
-         GetStr($pdo, \'Save\')."\'></td></tr></table></form>");
-} //Editable
-else {
-  echo ("<table>");
-';
-  
-  foreach ($Fields as $Fld=>$Arr) {
-  $FldType=$Arr['DocParamType'];
-  
-  $S.= "\r\n".'  $Fld=\''.$Fld.'\';
-  $OutVal= $dp[$Fld];
-  echo ("<tr><td align=right>".GetStr($pdo, "$Fld").": </td><td>");
-  ';
-  if ( $FldType==30) {
-    
-    $S.='$Checked="";
-  if ($OutVal) { 
-    $Checked=" checked ";
-  }
-  echo ("<input type=checkbox $Checked value=1 disabled");
-  ';
-   
-  }
-  else
-  if ( $FldType==50) {
-    // Enum
-    $S.='
-  echo ("<b>".GetEnum($pdo, "'.$Arr['AddParam'].'", $OutVal)."</b>");
-  ';
-   
-  }
-  else 
-  if ($DigArr[$Fld]!=0){
-    $S.='$OW=number_format($OutVal, '.$DigArr[$Fld].', ".", "\'");
-  echo ("<b>$OW</b>");
-  ';
-
-  }
-  else {
-    // All
-    $S.='
-  echo ($OutVal);
-  ';
-  }
-  $S.='
-  echo("</td></tr>");
-  ';
-
-  }  
-
-$S.='  echo ("</table>");
-}
-echo ("  <hr><br><a href=\''.$TabName.'List.php\'>".GetStr($pdo, \'List\')."</a>");';
-
-foreach ($StatusFlds as $Fld=>$V) {
-  $S.="\r\n".'echo (" | <a href=\''.$TabName.
-       'Change$Fld.php?$FullLink&NewStatus=0\'>".GetStr($pdo, \'Change'.$Fld.'\')."</a>");';
-}
-
-$S.='
-if ($Editable)
-  echo (" | <a href=\''.$TabName.'Delete.php?$FullLink\' onclick=\'return confirm(\"Delete?\");\'>".
-        GetStr($pdo, \'Delete\')."</a>");
-?>
-</body>
-</html>
-';
-
-fwrite($file,$S);
-fclose($file);
 //-------------------------------------------------------------------------------
+echo ("<br> Make Card");
+
+include "BuildFrmCard.php";
+
+
 foreach ($StatusFlds as $Fld=>$V) {
   BuildChangeStatus($pdo, $TabName, $Fld);
 }
 //--------------------------------------------------------------------------------
 //   Save file
 //--------------------------------------------------------------------------------
+echo ("<br> Make Save");
 include "BuildFrmSave.php";
 
 //--------------------------------------------------------------------------------
 //                Delete file
 //--------------------------------------------------------------------------------
+echo ("<br> Make Delete");
+include "BuildFrmDelete.php";
 
-$file = fopen("../Forms/{$TabName}Delete.php","w");
-
-fwrite($file,"<?php\r\n");
-fwrite($file,"session_start();\r\n");
-
-$S= '
-include ("../setup/common_pg.php");
-BeginProc();
-CheckLogin1 ();'.
-"\r\n";
-fwrite($file,$S);
-
-$S= "CheckRight1 (\$pdo, 'Admin');\r\n\r\n ".
-'$FldNames=array(';
-$Div='';
-
-$kk=0;
-foreach ($Fields as $Fld=>$Arr) {
-  $kk++;
-  if ($kk==4) {
-    $S.="\r\n      ";
-    $kk=0;
-  }
-  $S.="$Div'$Fld'";
-  $Div=',';
-
-  if ($Arr['DocParamType']==50) {
-    
-  }
-  //echo (" Fld:$Fld ");
-}
-
-$S.=");\r\n";
-
-$WH='';
-$DW='';
-
-$S.='$New=$_REQUEST[\'New\'];'."\r\n";  
-$S.='$PdoArr = array();'."\r\n";  
-
-$FullLink='';
-$DivFL='';
-foreach ($PKFields as $PK) {
-  $S.='$'.$PK.'=$_REQUEST[\''.$PK."'];\r\n";  
-  $S.='if ($'.$PK.'==\'\'){ die ("<br> Error:  Empty '.$PK.'");}'."\r\n";
-  
-  $WH.= $DW. '(\"'.$PK."\\\"= :".$PK.')';
-  $S.='$PdoArr["'.$PK.'"] = $'.$PK.';'."\r\n";
-  
-  $DW=' AND ';
-};
-
-$S.="\r\n".
- '$dp=array();
-  
-  $query = "select * FROM \"'.$TabName.'\" ".
-           "WHERE '.$WH.'";
-  try{
-    $STH = $pdo->prepare($query);
-    $STH->execute($PdoArr);
-  
-  if ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
-  }
-  else {
-    die ("<br> Error: not found record '.$WH.'"); 
-  }
-  '.$TabEditable.'
-  if (!$Editable) {
-    die ("<br> Error: Not Editable record ");
-  }
-  
-  $query = "delete FROM \"'.$TabName.'\" ".
-           "WHERE '.$WH.'";
-  
-  $STH = $pdo->prepare($query);
-  $STH->execute($PdoArr);
-  
-  }
-  catch (PDOException $e) {
-    echo ("<hr> Line ".__LINE__."<br>");
-    echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
-    print_r($PdoArr);	
-    die ("<br> Error: ".$e->getMessage());
-  }
-
-';  
-fwrite($file,$S);
-
-$S='$LNK=\'\';
-';
-
-$DL='';
-$N=0;
-foreach ($PKFields as $PK) {
-  $N++;
-  $S.= '
-  $V=$_REQUEST[\''.$PK.'\'];
-  $LNK.="'.$DL.$PK.'=$V";
-  ';
-  $DL='&';
-}
-
-$S.="\r\n".
-
-'echo (\'<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<link rel="stylesheet" type="text/css" href="../style.css">\'.
-\'<META HTTP-EQUIV="REFRESH" CONTENT="1;URL='.$TabName.'List.php">\'.
-\'<title>Save</title></head>
-<body>\');
-  
-  echo(\'<H2>Deleted</H2>\');
-?>
-</body>
-</html>';
-
-fwrite($file,$S);
-
-fclose($file);
 //--------------------------------------------------------------------------------
 //                Form Xls Upload file
 //--------------------------------------------------------------------------------
-
-$file = fopen("../Forms/Frm-{$TabName}-XlsUpload.php","w");
-
-fwrite($file,"<?php\r\n");
-fwrite($file,"session_start();\r\n");
-
-$S= '
-include ("../setup/common_pg.php");
-BeginProc();
-?>
-<html>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-<meta http-equiv="Content-Language" content="ru">
-<link rel="stylesheet" type="text/css" href="../style.css">
-<link rel="icon" href="../favicon.ico" type="image/x-icon">
-<title>'.$TabName.' Card</title></head>
-<body>
-<?php
-// Checklogin1();'."\r\n";
-
-fwrite($file,$S);
-
-$S= "CheckRight1 (\$pdo, 'ExtProj.Admin');\r\n\r\n ";
-$Div='';
-
-$kk=0;
-
-$Cnt=0;
-
-$FldsList='';
-foreach ($Fields as $Fld=>$Arr) {
-  $kk++;
-  $FldsList.="$Div";
-  $Div=', ';
-  $Cnt++;
-  if ($kk==4) {
-    $FldsList.="<br>\r\n      ";
-    $kk=0;
-  }
-  $FldsList.=$Fld;
-
-}
-
-$S.="\r\n".
-
-'  echo ("<form method=\'post\' action=\''.$TabName.'-UploadXlsx.php\' enctype=\'multipart/form-data\'>
-   <table border=\'0\'>
-   <tr>
-     <td>Upload XLSX file to '.$TabName.' with up to '.$Cnt.' columns:<br>'.$FldsList.'</td>
-    </tr>
-    <tr>
-      <td><input type=\'file\' accept=\'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\' '.
-      'value=\'File name:\' name=\'userfile\'></td>
-    </tr> ".
-    "<tr>".
-     //"<td>Add lines to project: <input type=checkbox name=\'AddToProject\' value=1></td>".
-    "</tr>".
-
-    "<tr>
-      <td align=right><input type=\'submit\' value=\'Upload\'></td>
-    </tr> 
-    </table>
- </form>");
-  //---------------------------------------------------------------------------------  
-?>
-</body></html>' ;
-
-fwrite($file,$S);
-
-fclose($file);
+echo ("<br> Make Form Xls upload");
+include "BuildFrmXlsFrm.php";
 
 //===============================================================
 //                        Upload XLS File

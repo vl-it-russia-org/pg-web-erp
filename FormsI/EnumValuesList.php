@@ -3,16 +3,15 @@ session_start();
 include ("../setup/common_pg.php");
 BeginProc();
 
-$TabName='AdmTabRights';
+$TabName='EnumValues';
 OutHtmlHeader ($TabName." list");
 
 include ("../js_SelAll.js");
 
-$CurrFile='AdmTabRightsList.php';
-$Frm='AdmTabRights';
-$Fields=array('TabNo','Right','CanList'
-      ,'CanEdit','CanCardReadOnly','CanDelete','CanMassDelete'
-      ,'CanXlsUpload');
+$CurrFile='EnumValuesList.php';
+$Frm='EnumValues';
+$Fields=array('EnumName','EnumVal','Lang'
+      ,'EnumDescription');
 $enFields= array();
 CheckRight1 ($pdo, 'Admin');
 
@@ -20,7 +19,7 @@ CheckRight1 ($pdo, 'Admin');
 CheckTkn();
 $ArrPostParams=array();
 
-// Какие параметры передаем в форму AdmTabRightsCard.php
+// Какие параметры передаем в форму EnumValuesCard.php
 $CardArr=array();
 $CardArr['FrmTkn']=MakeTkn(1); 
 
@@ -29,12 +28,12 @@ if (!empty($_REQUEST['BegPos'])) {
   $BegPos = $_REQUEST['BegPos'] +0;
 };
 
-$ORD = '"TabNo", "Right"';
+$ORD = '"EnumName", "EnumVal", "Lang"';
 if ($ORD =='1') {
-$ORD = '"TabNo", "Right"';
+$ORD = '"EnumName", "EnumVal", "Lang"';
   }
   else {
-    $ORD = '"TabNo", "Right"';
+    $ORD = '"EnumName", "EnumVal", "Lang"';
   }
 
   $ORDS = ' order by  '; 
@@ -75,7 +74,7 @@ try {
 
   $PageArr=array();
 
-  $queryCNT = "select COUNT(*) \"CNT\" FROM \"AdmTabRights\" ".
+  $queryCNT = "select COUNT(*) \"CNT\" FROM \"EnumValues\" ".
               "$WHS ";
   
   $STHCnt = $pdo->prepare($queryCNT);
@@ -88,14 +87,14 @@ try {
   
   $PageInfo = CalcPageArr($pdo, $PageArr, $CntLines);
 
-  $query = "select * FROM \"AdmTabRights\" ".
+  $query = "select * FROM \"EnumValues\" ".
            "$WHS $ORDS ". AddLimitPos($PageArr['BegPos'], $PageArr['LPP']);
 
   $STH = $pdo->prepare($query);
   $STH->execute($PdoArr);
   
 
-  echo ('<br><b>'.GetStr($pdo, 'AdmTabRights').' '.
+  echo ('<br><b>'.GetStr($pdo, 'EnumValues').' '.
         GetStr($pdo, 'List').
         '</b> '.$PageInfo) ;
   
@@ -120,13 +119,13 @@ try {
   }
   MakeTkn();
   echo ('<td><button type="submit">Filter</button></td></tr></table></form>');
-  echo ('<hr><table><tr><td><form method=post action="AdmTabRightsCard.php">'.
+  echo ('<hr><table><tr><td><form method=post action="EnumValuesCard.php">'.
         '<input type=hidden Name=New VALUE=1>'.
         "<input type=submit Value='".GetStr($pdo, 'New')."'>");
     MakeTkn();
     echo("</form></td><td>" );
 //--------------------------------------------------------------------------------
-echo ('<form method=post action="AdmTabRightsGroupOp.php">'.
+echo ('<form method=post action="EnumValuesGroupOp.php">'.
         "<input type=submit  Name=OpType Value='".GetStr($pdo, 'Delete')."' 
           onclick='return confirm(\"Delete selected?\");'></td></tr></table>" );
 MakeTkn();
@@ -154,52 +153,38 @@ while ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
   echo ("<tr".$classtype.">");
 
   $PKValArr=array();
-  $PKValArr['TabNo']= $dp['TabNo'];
-  $PKValArr['Right']= $dp['Right'];
+  $PKValArr['EnumName']= $dp['EnumName'];
+  $PKValArr['EnumVal']= $dp['EnumVal'];
+  $PKValArr['Lang']= $dp['Lang'];
   $PKRes=base64_encode( json_encode($PKValArr));
   
   echo ("<td><input type=checkbox ID='Chk_$Cnt' Name=Chk[$Cnt] value='$PKRes'></td>");
   
-  $CardArr['TabNo']= $dp['TabNo'];
-  $CardArr['Right']= $dp['Right'];
+  $CardArr['EnumName']= $dp['EnumName'];
+  $CardArr['EnumVal']= $dp['EnumVal'];
+  $CardArr['Lang']= $dp['Lang'];
   $Json = base64_encode(json_encode ($CardArr));
 
   $CrdNewWindow =GetStr($pdo, 'CrdInNewWnd');
   $CrdHere =GetStr($pdo, 'CrdInCurrWnd');
     echo("<td align=center>
-         <button type=button onclick=\"openFormWithPost('AdmTabRightsCard.php', '$Json', '_self')\" title='$CrdHere'>&#9900;</button>
-         <button type=button onclick=\"openFormWithPost('AdmTabRightsCard.php', '$Json', '_blank')\" title='$CrdNewWindow'>&#9856;</button> </td>");
+         <button type=button onclick=\"openFormWithPost('EnumValuesCard.php', '$Json', '_self')\" title='$CrdHere'>&#9900;</button>
+         <button type=button onclick=\"openFormWithPost('EnumValuesCard.php', '$Json', '_blank')\" title='$CrdNewWindow'>&#9856;</button> </td>");
 
-  $Fld='TabNo';
+  $Fld='EnumName';
   echo('<td>'.$dp[$Fld]."</td>");
   
 
-  $Fld='Right';
-  echo("<td><a href='AdmTabRightsCard.php?TabNo={$dp['TabNo']}&Right={$dp['Right']}'>{$dp[$Fld]}</a></td>");
+  $Fld='EnumVal';
+  echo('<td>'.$dp[$Fld]."</td>");
   
 
-  $Fld='CanList';
-  echo('<td align=center>'.$dp[$Fld]."</td>");
+  $Fld='Lang';
+  echo("<td><a href='EnumValuesCard.php?EnumName={$dp['EnumName']}&EnumVal={$dp['EnumVal']}&Lang={$dp['Lang']}'>{$dp[$Fld]}</a></td>");
   
 
-  $Fld='CanEdit';
-  echo('<td align=center>'.$dp[$Fld]."</td>");
-  
-
-  $Fld='CanCardReadOnly';
-  echo('<td align=center>'.$dp[$Fld]."</td>");
-  
-
-  $Fld='CanDelete';
-  echo('<td align=center>'.$dp[$Fld]."</td>");
-  
-
-  $Fld='CanMassDelete';
-  echo('<td align=center>'.$dp[$Fld]."</td>");
-  
-
-  $Fld='CanXlsUpload';
-  echo('<td align=center>'.$dp[$Fld]."</td>");
+  $Fld='EnumDescription';
+  echo('<td>'.$dp[$Fld]."</td>");
   echo("</tr>");
 }
 echo("</table>".
@@ -212,9 +197,9 @@ echo('<table><tr class="header">');
 OutListFooter($pdo, $CurrFile, $ArrPostParams, $PageArr);
 
 
-echo ('<td><a href="AdmTabRightsPrintXLS.php'.$FullRef.'">Print XLS</a></td>'.
+echo ('<td><a href="EnumValuesPrintXLS.php'.$FullRef.'">Print XLS</a></td>'.
 
-      '<td><a href="Frm-AdmTabRights-XlsUpload.php">Upload from XLS</a></td>'.
+      '<td><a href="Frm-EnumValues-XlsUpload.php">Upload from XLS</a></td>'.
 
        '</tr></table>');
 

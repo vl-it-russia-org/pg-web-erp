@@ -217,6 +217,7 @@ isset($_SESSION['login']) or die(); // здесь если функция вернула false то выпол
 echo '<br>Good day, ' . $_SESSION['login'].'! ';
 
 if ($_SESSION['login'] !=  '' ) { 
+  $FrmTkn = MakeTkn(1); 
   ShowMenu ($pdo, 0,0, 0, '');
 }  
 

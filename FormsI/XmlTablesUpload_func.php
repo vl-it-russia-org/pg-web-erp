@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 function ReadIndx (&$pdo, $TabCode, &$IndxStr) {
   $IndxCnt=0;

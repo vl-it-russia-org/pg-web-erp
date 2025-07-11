@@ -1,16 +1,26 @@
 <?php
 session_start();
+
+mb_internal_encoding("UTF-8");
+
 require '../../composer/vendor/autoload.php';
+
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
 include ("../setup/common_pg.php");
+
 BeginProc();
+
 define('EOL',(PHP_SAPI == 'cli') ? PHP_EOL : '<br />');
+
 $TabName='AdmTabRights';
 $Frm='AdmTabRights';
 $Fields=array('TabNo','Right','CanList'
-      ,'CanEdit','CanCardReadOnly','CanDelete','CanXlsUpload');
+      ,'CanEdit','CanCardReadOnly','CanDelete','CanMassDelete'
+      ,'CanXlsUpload');
 $enFields= array();
+
 CheckRight1 ($pdo, 'Admin');
 
  $ORD = $_REQUEST['ORD'];
@@ -55,7 +65,7 @@ $objPHPExcel->getProperties()->setCreator("Vladislav Levitskiy")
              ->setLastModifiedBy($_SESSION['login'])
              ->setTitle("AccPhp AdmTabRights")
              ->setSubject("AdmTabRights")
-             ->setDescription("VDL PHP+PDO+PostgreSQL")
+             ->setDescription("VDL;PHP_PDO_PostgreSQL")
              ->setKeywords("AccPhp;AdmTabRights")
              ->setCategory("AccPhp;AdmTabRights");
   
@@ -77,12 +87,10 @@ $row=1;
 $col=1;   
 
 
-$aSheet->setCellValue([$col, $row], GetStr($pdo, 'AdmTabRights').
-      ' '.  GetStr($pdo, 'List'));
+$aSheet->setCellValue([$col, $row], 'AdmTabRights List');
   
 $row++;
-$aSheet->setCellValue([$col, $row], GetStr($pdo, 'Created').
-      ": {$_SESSION['login']} ". date("Y-m-d H:i:s"));
+$aSheet->setCellValue([$col, $row], "Created: {$_SESSION['login']} ". date("Y-m-d H:i:s"));
 
 
 $query = "select * FROM \"AdmTabRights\" ".
@@ -100,7 +108,7 @@ $col=1;
 $FL=$row;
 
 foreach ( $Fields as $Fld) {
-  $aSheet->setCellValue([$col, $row], GetStr($pdo, $Fld));
+  $aSheet->setCellValue([$col, $row], $Fld);
   $col++; 
 }
 
@@ -135,11 +143,23 @@ while ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
   $aSheet->setCellValue([$col, $row], $dp[$Fld]);
   $col++;
 
+  $Fld='CanMassDelete';
+  $aSheet->setCellValue([$col, $row], $dp[$Fld]);
+  $col++;
+
   $Fld='CanXlsUpload';
   $aSheet->setCellValue([$col, $row], $dp[$Fld]);
   $col++;
   $row++;
 }
+ }
+  catch (PDOException $e) {
+    echo ("<hr> Line ".__LINE__."<br>");
+    echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
+    print_r($PdoArr);	
+    die ("<br> Error: ".$e->getMessage());
+  }
+
 
   $l=$row-1;
   $aSheet->setAutoFilter("A3:{$LastCol}3");
@@ -187,17 +207,33 @@ while ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
   //MakeAdminRec ($pdo, $_SESSION['login'], 'EDI_ORD', $OrdId, 
   //                      'Out XLS', "Out file $add_str.XLS: $LineNo lines, amount $TotAmount");
 
-  $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($objPHPExcel , 'Xlsx');
+  $writer = new Xlsx($objPHPExcel);
 
- }
-  catch (PDOException $e) {
-    echo ("<hr> Line ".__LINE__."<br>");
-    echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
-    print_r($PdoArr);	
-    die ("<br> Error: ".$e->getMessage());
+  // Save as file
+  $YM = date ('Y-m');
+  $Dir = "$TmpFilesDir/Xls/$YM";
+  if (!file_exists($Dir)) {
+    mkdir($Dir);
   }
 
+  $writer->save("$Dir/Xls-AdmTabRights$add_str.xlsx");
+  $file_size = filesize("$Dir/Xls-AdmTabRights$add_str.xlsx");
+  //$content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  $content_type = 'application/octet-stream';
 
+header('Content-Type: ' . $content_type);
+header('Content-Disposition: attachment; filename="Xls-AdmTabRights'.$add_str.'.xlsx"');
+header('Content-Length: ' . $file_size);
+header('Cache-Control: no-cache, must-revalidate');
+header('Pragma: no-cache');
+header('Expires: 0');
+
+readfile("$Dir/Xls-AdmTabRights$add_str.xlsx");
+exit;
+
+
+
+/*
 
 header('Last-Modified: '.gmdate('D, d M Y H:i:s').' GMT');
 header('Cache-Control: no-store, no-cache, must-revalidate');
@@ -206,4 +242,5 @@ header('Pragma: no-cache');
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename=Xls-AdmTabRights'.$add_str.'.xlsx');
 $writer->save('php://output');
+*/
 ?>

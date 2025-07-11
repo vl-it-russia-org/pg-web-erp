@@ -78,7 +78,7 @@ if ($Editable) {
   $OutVal= $dp[$Fld];  
   echo ("<td align=right>".GetStr($pdo, $Fld).": </td><td>");
   echo (EnumSelection($pdo, $Fld, "$Fld ID=$Fld", $dp[$Fld]));
-  echo("</td>");
+  echo(" <a href='MenuType' title='".GetStr($pdo,'Setup')."' target='MenuSetup'>&#9881;</a></td>");
   echo ("</tr><tr>");
 
 

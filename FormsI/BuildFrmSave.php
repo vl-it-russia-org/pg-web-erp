@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $file = fopen("../Forms/{$TabName}Save.php","w");
 
 fwrite($file,"<?php\r\n");
@@ -38,9 +38,9 @@ foreach ($Fields as $Fld=>$Arr) {
   $Div=',';
   
   //echo (" Fld:$Fld ");
-  echo ("<hr>$Fld");
-  print_r($Arr);
-  echo ("<hr>");
+  //echo ("<hr>$Fld");
+  //print_r($Arr);
+  //echo ("<hr>");
 
 }
 $S.=");\r\n".

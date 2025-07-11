@@ -372,8 +372,9 @@ if ($Editable) {
       $query = "select \"ParamNo\", \"ParamName\", \"DocParamType\", \"AddParam\" from \"AdmTabFields\" ". 
                "where (\"TypeId\" = :MTabCode) order by \"Ord\""; 
 
-      $sql2 = $pdo->query ($query) 
-                or die("Invalid query:<br>$query<br> Line:".__LINE__." ". $pdo->error);
+      
+      $STH = $pdo->prepare($query);
+      $STH->execute($PdoArr);
       
       $Str='';
       $i=0;
