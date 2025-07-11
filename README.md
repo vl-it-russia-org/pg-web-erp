@@ -11,5 +11,5 @@ How to test functionality:
  
  4. Unzip file **web_erp_2025-07-11.zip** into new folder: for example, */var/var/Files*. You will get file */var/var/Files/web_erp_2025-07-11.backup*
  5. Come to */var/var/Files*: **cd /var/var/Files**
- 6. Restore data to web_erp database (run in $bash): 
+ 6. Restore data to web_erp database (*run in $bash*): 
  **pg_restore -U web_erp -h localhost -d web_erp -v web_erp_2025-07-11.backup**
