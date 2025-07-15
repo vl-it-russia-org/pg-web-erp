@@ -174,6 +174,16 @@ function checkPass()
     };
 
     echo('<td>'.GetStr($pdo, 'PAR_'.$dp1['ParamType'].'_'.$dp1['ParamNo']).':');
+    if ($dp1['ValueType'] =='Enum') {
+      
+      //print_r($dp1);
+
+      $EnName =trim($dp1['ValuePossibleList']);
+      //echo("<br>$EnName<br>");
+       
+      echo(EnumSelection($pdo, $EnName, 'PAR_'.$dp1['ParamType'].'_'.$dp1['ParamNo'], $CurrVal));
+    }
+    else
     if ($dp1['ValueType'] !='select') {
       echo ('<input type=text size=20'.
                    ' name="PAR_'.$dp1['ParamType'].'_'.$dp1['ParamNo'].'" value="'.$CurrVal.'">');

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 // Создание стандартной формы для просмотра карточки таблицы
 // Создается как форма карточка для Просмотра так и карточка для редактирования
 // записи таблицы *Card.php
@@ -20,12 +20,64 @@ OutHtmlHeader ($TabName." card");
 
 fwrite($file,$S);
 
+//==========================================================
+// HTML editor- ?
+//=================================================
+$S='';
+
+$HtmlFlds=array();
+$HaveHtmlFlds=0;
+// AdmFieldsAddFunc
+// Id, TabName, FldName, AddFunc
+$query = "select * from \"AdmFieldsAddFunc\" ". 
+         "where (\"TabName\" = :TabName) and (\"AddFunc\" =5) order by \"FldName\" "; 
+
+$PdoArr = array();
+$PdoArr['TabName']= $TabName;
+
+$STH = $pdo->prepare($query);
+$STH->execute($PdoArr);
+
+while ($dp25 = $STH->fetch(PDO::FETCH_ASSOC)) {
+  $HaveHtmlFlds=1;
+  $HtmlFlds[$dp25['FldName']]= 1;
+}
+
+if ($HaveHtmlFlds==1) {
+  $S.='
+include "../SubHtml.js";
+include "../js_SelAll.js";
+include ("../setup/HtmlTxt.php");
+';
+}
+
+//==========================================================
+//                 Default status -- AddFieldFunc 17
+//==========================================================
+$DefaultStatusFlds=array();
+// AdmFieldsAddFunc
+// Id, TabName, FldName, AddFunc
+$query = "select * from \"AdmFieldsAddFunc\" ". 
+         "where (\"TabName\" = :TabName) and (\"AddFunc\" =17) order by \"FldName\" "; 
+
+$PdoArr = array();
+$PdoArr['TabName']= $TabName;
+
+$STH = $pdo->prepare($query);
+$STH->execute($PdoArr);
+
+while ($dp25 = $STH->fetch(PDO::FETCH_ASSOC)) {
+  $DefaultStatusFlds[$dp25['FldName']]= $dp25['Param'];
+}
+//==========================================================
+
+
 $FldAccArr=array ();
 
 if ($HaveRef) {
   //echo ("<br> FOtherTab: ");
   //print_r($FOtherTab);
-  $S= 'include "../js_module.php";'."\r\nOutPostReq();\r\n//------- For Ext Tables --------- ";
+  $S.= 'include "../js_module.php";'."\r\nOutPostReq();\r\n//------- For Ext Tables --------- ";
   
   echo ("<br> Extab1 = ");
   print_r($ExtTab1);
@@ -38,7 +90,7 @@ if ($HaveRef) {
   }
 }
 else {
-  $S='';
+  //$S='';
 }
 
 $S.="\r\n\r\n";
@@ -83,6 +135,87 @@ $DivFL='';
 $PDO1='';
 $LPK='';
 
+//--------------------------------------------------------------
+// Может ли пользователь копировать карточку
+//--------------------------------------------------------------
+$CopyRecord = GetParam_TabAddFunc($pdo, $TabName, 60);
+
+echo ("<br>CopyRecord: $CopyRecord <br>");
+
+
+
+//==============================================================
+//                                  Master Tab             =====
+//==============================================================
+
+$MasterTab = GetMasterTabName($pdo, $TabName);
+$MasterFldsCorr = array();                      
+if ( $MasterTab != '') {
+  $Param = GetParam_TabAddFunc($pdo, $TabName, 20);
+  if ( $Param != '') {
+    echo ("<br> MasterTab: $MasterTab $Param <br>");
+    $MasterFldsCorr1 = GetMasterCorrFields ($pdo, $Param);
+    
+    echo ("<br> Flds Corr: ");
+    print_r($MasterFldsCorr1);
+    echo ("<br>");
+
+    foreach ( $MasterFldsCorr1 as $TypeFld=> $Arr3) {
+      foreach ($Arr3 as $Fld1=>$Indx) {
+        $MasterFldsCorr[$Indx][$TypeFld]=$Fld1;        
+      }
+    }
+
+    $MFields = GetParam_TabAddFunc($pdo, $TabName, 35); // Какие поля мастер таблицы выводить
+    if ( $MFields!='') {
+      $MFieldsArr=json_decode($MFields, 1);
+      
+      print_r($MasterFldsCorr);
+      echo (" ---- <br> ---- ");
+
+
+      //---------------------------------------- Out master tab fields ---
+      $S.="\r\n// ----- Out MasterTab: $MasterTab ".
+          "\r\n\$PdoArr=array();";
+      $WH_MT='';
+      $DivMT='';
+      foreach ($MasterFldsCorr as $Indx=>$Arr) {
+        $FldMT = $Arr['FldM'];
+        $FldCT = $Arr['FldT'];
+        $S.="\r\n\$PdoArr['$FldMT']=\$_REQUEST['$FldCT'];";
+        $WH_MT.="$DivMT (\\\"$FldMT\\\"=:$FldMT)";
+        $DivMT='and';
+      }
+      
+      $S.="\r\ntry {".
+          "\r\n  echo ('<h4>'.GetStr(\$pdo, '$MasterTab').'</h4>'); ".
+          "\r\n  \$query = \"select * from \\\"$MasterTab\\\" \". ".
+          "\r\n           \"where $WH_MT\";\r\n".
+          "\r\n  \$STH = \$pdo->prepare(\$query);".
+          "\r\n  \$STH->execute(\$PdoArr);".
+          "\r\n\r\n  if (\$dp_mt = \$STH->fetch(PDO::FETCH_ASSOC)) { ".
+          "\r\n    echo('<table>');";
+          
+          foreach ($MFieldsArr as $MFld=>$V) {
+            $S.="\r\n    echo('<tr><td align=right>'.GetStr(\$pdo, '$MFld').':</td><td>'.".
+                "\r\n          \$dp_mt['$MFld'].'</td></tr>');";
+          }
+          $S.= "\r\n    echo('</table><hr>');".
+               "\r\n  };".'
+}
+catch (PDOException $e) {
+  echo ("<hr> Line ".__LINE__."<br>");
+  echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
+  print_r($PdoArr);	
+  die ("<br> Error: ".$e->getMessage());
+}
+  ';
+    }
+  }
+}
+
+
+//==============================================================
 $S.='$PdoArr = array();'."\r\n";  
 
 
@@ -108,6 +241,32 @@ foreach ($PKFields as $PK) {
   $DivFL='&';
 
 };
+//=================================================
+
+$StatusFlds=array();
+$StatusChangeRules=array();
+
+
+// AdmFieldsAddFunc
+// Id, TabName, FldName, AddFunc
+$query = "select * from \"AdmFieldsAddFunc\" ". 
+         "where (\"TabName\" = :TabName) and (\"AddFunc\" in (10, 15)) order by \"FldName\" "; 
+
+$PdoArr = array();
+$PdoArr['TabName']= $TabName;
+
+$STH = $pdo->prepare($query);
+$STH->execute($PdoArr);
+
+while ($dp25 = $STH->fetch(PDO::FETCH_ASSOC)) {
+  if ($dp25['AddFunc']==10) {
+    $StatusFlds[$dp25['FldName']]= 1;
+  }
+  else {
+    $StatusChangeRules[$dp25['FldName']]= $dp25['Param'];
+  }
+}
+
 
 //=================================================
 
@@ -150,11 +309,18 @@ while ($dp22 = $STH->fetch(PDO::FETCH_ASSOC)) {
 $S.='echo("<H3>".GetStr($pdo, \''.$TabName.'\')."</H3>");'."\r\n".
   '  $dp=array();
   $FullLink="'.$FullLink.'";
-
-  $query = "select * FROM \"'.$TabName.'\" ".
-           "WHERE '.$WH.'";
   
   try {
+  ';
+
+
+//==================================================================
+//------------------------------------------------------------------
+
+$S.='
+  
+  $query = "select * FROM \"'.$TabName.'\" ".
+           "WHERE '.$WH.'";
   
   $STH = $pdo->prepare($query);
   $STH->execute($PdoArr);  
@@ -171,6 +337,7 @@ $S.='echo("<H3>".GetStr($pdo, \''.$TabName.'\')."</H3>");'."\r\n".
   }  
   
   $New=$_REQUEST[\'New\'];
+
 
 '.$TabEditable.'
 if ($Editable) {
@@ -210,21 +377,6 @@ $S="\r\n".'  $LN=0;';
 
 //=================================================
 
-$StatusFlds=array();
-
-// AdmFieldsAddFunc
-// Id, TabName, FldName, AddFunc
-$query = "select * from \"AdmFieldsAddFunc\" ". 
-         "where (\"TabName\" = :TabName) and (\"AddFunc\"=10) order by \"FldName\" "; 
-
-$STH = $pdo->prepare($query);
-$STH->execute($PdoArr);
-
-while ($dp22 = $STH->fetch(PDO::FETCH_ASSOC)) {
-  $StatusFlds[$dp22['FldName']]=1;
-}
-
-//=================================================
 
 
 if ($RR>1) {
@@ -240,6 +392,7 @@ if ($RR>1) {
      "\r\n        ".'$LN=$dp4[\'MX\'];'.
      "\r\n      ".'}'.
      "\r\n      ".'$LN+=1;'.
+     "\r\n      ".'$'.$LastPK.'=$LN;'.
      "\r\n  ".'}'."\r\n";
 }
 
@@ -289,6 +442,9 @@ foreach ($Fields as $Fld=>$Arr) {
   }
   else 
   if ($FldType==15) {
+      if ($HtmlFlds[$Fld]==1) {
+        $S.='  BuildHtmlInput($Fld);'."\r\n";
+      }
       $S.='  echo ("<textarea Name=\'$Fld\'  ID=\'$Fld\'  cols=50 rows=3>{$dp[$Fld]}</textarea>");';  
   }
   else
@@ -331,7 +487,14 @@ foreach ($Fields as $Fld=>$Arr) {
       $S.='  echo ( EnumSelection($pdo, "'.$Arr['AddParam'].'", "'.$Fld.' ID=\'$Fld\' ", $OutVal));';
     }
     else {
+      
       $S.='  echo ( "<b>".GetEnum($pdo, "'.$Arr['AddParam'].'", $OutVal)."</b>");';
+      if ($DefaultStatusFlds[$Fld]!='') {
+        $S.="\r\n  if (\$New==1) {".
+            "\r\n    echo(\"<input type=hidden Name='$Fld' value='{$DefaultStatusFlds[$Fld]}'>\");".
+            "\r\n  }\r\n";  
+      }
+
     }
   }
   } //------------------ 
@@ -411,6 +574,16 @@ else {
   ';
    
   }
+  else
+  if ($FldType==15) {
+      if ($HtmlFlds[$Fld]==1) {
+        $S.='  echo (DivTxt(HtmlTxt($OutVal), 100));'."\r\n";
+      }
+      else {
+        $S.='  echo (DivTxt($OutVal, 100));'."\r\n";
+
+      }
+  }
   else 
   if ($DigArr[$Fld]!=0){
     $S.='$OW=number_format($OutVal, '.$DigArr[$Fld].', ".", "\'");
@@ -432,17 +605,98 @@ else {
 
 $S.='  echo ("</table>");
 }
-echo ("  <hr><br><a href=\''.$TabName.'List.php\'>".GetStr($pdo, \'List\')."</a>");';
+echo ("  <hr><table><tr><td><a href=\''.$TabName.'List.php\'>".GetStr($pdo, \'List\')."</a></td>");';
 
 foreach ($StatusFlds as $Fld=>$V) {
-  $S.="\r\n".'echo (" | <a href=\''.$TabName.
-       'Change$Fld.php?$FullLink&NewStatus=0\'>".GetStr($pdo, \'Change'.$Fld.'\')."</a>");';
+  $S.="\r\n".
+  '  if ($New!=1) {'."\r\n";
+
+  $S.='    $PostArr = array();'."\r\n";  
+
+
+  foreach ($PKFields as $PK) {
+    $S.='    $PostArr["'.$PK.'"]=$'.$PK.";\r\n";
+  }
+
+  //--------------------------------------------------
+  $EnName = $Fld;
+  if (!empty ($Fields[$Fld]['AddParam'])) {
+    $EnName = $Fields[$Fld]['AddParam'];
+  }
+  $PossibleStatus = json_decode($StatusChangeRules[$Fld],1);
+ 
+  $S.= "    // {$TabName} $Fld {$EnName}\r\n".
+      '    $EnName=\''.$EnName.'\';'."\r\n".
+      '    $PossibleStatus=array ( '."\r\n";
+  
+  $Div='';
+  foreach ( $PossibleStatus as $Val => $Arr) {
+    
+    $S.=$Div.'      // '.$Val.' - '.GetEnum($pdo,$EnName,$Val) ."\r\n";
+    $S.='      '.$Val.'=> array ( ';
+    
+    $Div2='';
+    foreach ( $Arr as $Val2 => $Z) {
+      $S.=$Div2.$Val2.'=>1';
+      $Div2=", "; 
+    }
+    $S.=")";
+    $Div=",\r\n";
+  }
+  $S.=");\r\n\r\n";
+  $S.='    $StsArr = array();'."\r\n";
+  $S.='    $StsCnt = 0;'."\r\n";
+  $S.="    \$CurrStatus=\$dp['$Fld'];\r\n".
+      "    foreach(\$PossibleStatus[\$CurrStatus] as \$PV=> \$V){ \r\n".
+      "      \$StsCnt++;\r\n".
+      "      \$StsArr[\$StsCnt]['NewStatus']= \$PV;\r\n".
+      "      \$StsArr[\$StsCnt]['tit']= GetEnum(\$pdo, \$EnName, \$PV);\r\n".
+      "      \$StsArr[\$StsCnt]['Txt']= GetEnum(\$pdo, \$EnName, \$PV);\r\n".
+      "    }\r\n";
+
+
+
+  //=================================================
+  $S.=" 
+
+    OutStatusChange (\$pdo, '{$TabName}-Change$Fld.php', \$PostArr, \$StsArr);
+  }";
 }
 
 $S.='
 if ($Editable)
-  echo (" | <a href=\''.$TabName.'Delete.php?$FullLink\' onclick=\'return confirm(\"Delete?\");\'>".
-        GetStr($pdo, \'Delete\')."</a>");
+  echo ("<td><a href=\''.$TabName.'Delete.php?$FullLink\' onclick=\'return confirm(\"Delete?\");\'>".
+        GetStr($pdo, \'Delete\')."</a></td>");
+';
+
+//--------------------------------------------------
+//      Кнопка копирования записи
+if ($CopyRecord!='' ) {
+
+  $S.="\r\n".
+  '  if ($New!=1) {'."\r\n";
+
+  $S.='    $PostArr = array();'."\r\n";  
+
+
+  foreach ($PKFields as $PK) {
+    $S.='    $PostArr["'.$PK.'"]=$'.$PK.";\r\n";
+  }
+
+  $S.='    $StsArr = array();'."\r\n";
+  $S.='    $StsCnt = 0;'."\r\n";
+  $S.="    \$StsCnt++;\r\n".
+      "    \$StsArr[\$StsCnt]['NewStatus']= 'Copy';\r\n".
+      "    \$StsArr[\$StsCnt]['tit']= GetStr(\$pdo, 'CopyRecToNew');\r\n".
+      "    \$StsArr[\$StsCnt]['Txt']= GetStr(\$pdo, 'CopyRecToNew');\r\n".
+      "    OutStatusChange (\$pdo, '{$TabName}-CopyRecord.php', \$PostArr, \$StsArr);\r\n".
+      "  }\r\n";
+
+}
+//-------------------------------------------------
+$S.='
+echo ("</tr></table>");
+
 ?>
 </body>
 </html>
@@ -450,5 +704,187 @@ if ($Editable)
 
 fwrite($file,$S);
 fclose($file);
+//======================================================================================
+if ($CopyRecord!='' ) {
+  echo ("<br> Build CopyRecord <br>"); 
+  include ("BuildFrmCopyRecord.php");
 
+
+}
+
+//=======================================================================================
+// Build ChangeStatus files
+//=======================================================================================
+//echo ("<br> StatusFlds : ");
+//print_r($StatusFlds);
+//echo ("<br> StatusChangeRules : ");
+//print_r($StatusChangeRules);
+$S='';
+
+foreach ($StatusFlds as $Fld=>$V) {
+  if (! empty ( $StatusChangeRules[$Fld])) {
+    $file = fopen("../Forms/{$TabName}-Change$Fld.php","w");
+
+    echo ("<br> {$TabName}-Change$Fld.php --- Field: ");
+    print_r($Fld);
+    echo("<br>"); 
+    
+    $EnName = $Fld;
+    if (!empty ($Fields[$Fld]['AddParam'])) {
+      $EnName = $Fields[$Fld]['AddParam'];
+    }
+
+
+    fwrite($file,"<?php\r\n");
+    fwrite($file,"session_start();\r\n");
+    //--------------------------------------------------
+
+$S= '
+include ("../setup/common_pg.php");
+BeginProc();
+CheckLogin1 ();
+OutHtmlHeader ("{$TabName}-Change$Fld");
+
+'.
+"\r\n";
+fwrite($file,$S);
+
+$S= "\$Editable = CheckFormRight(\$pdo, '$TabName', 'Card');\r\nCheckTkn();\r\n".
+'$FldNames=array(';
+$Div='';
+
+foreach ($PKFields as $PK) {  
+  $S.="$Div'$PK'";
+  $Div=', '; 
+}
+
+$S.="$Div'$Fld');\r\n\r\n";
+    
+    //-------------------------------------------------------
+    $PossibleStatus = json_decode($StatusChangeRules[$Fld],1);
+   
+    $S.= "// {$TabName} $Fld {$EnName}\r\n".
+        '$PossibleStatus=array ( '."\r\n";
+    $Div='';
+    foreach ( $PossibleStatus as $Val => $Arr) {
+      
+      $S.=$Div.'  // '.$Val.' - '.GetEnum($pdo,$EnName,$Val) ."\r\n";
+      $S.='  '.$Val.'=> array ( ';
+      
+      $Div2='';
+      foreach ( $Arr as $Val2 => $Z) {
+        $S.=$Div2.$Val2.'=>1';
+        $Div2=", "; 
+      }
+      $S.=")";
+      $Div=",\r\n";
+    }
+    $S.=");\r\n";
+
+
+$S.='$PdoArr = array();
+';
+
+$PK_WH='';
+$AND='';
+foreach ($PKFields as $PK) {  
+  $S.='if(empty($_REQUEST["'.$PK.'"])) {
+  die ("Error: empty '.$PK.'");
+}
+$'.$PK.'=$_REQUEST["'.$PK.'"];
+$PdoArr["'.$PK.'"]= $'.$PK.';
+
+';
+  $PK_WH.="$AND(\\\"$PK\\\"=:$PK)";
+  $AND="and";
+
+}
+
+$S.='
+
+if ($_REQUEST["NewStatus"]=="") {
+  die ("<br> Error: New status is empty");
+}
+
+$NewStatus=$_REQUEST["NewStatus"];
+$EnName = "'.$EnName.'";
+
+$NewStatusTxt= GetEnum($pdo, $EnName,$NewStatus); 
+
+$CurrStatus=0;
+$CurrStatusTxt="";
+try{
+  $query = "select * FROM \"'.$TabName.'\" ".
+           "WHERE '.$PK_WH.'";
+
+  $STH = $pdo->prepare($query);
+  $STH->execute($PdoArr);  
+  
+  if ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
+    $CurrStatus = $dp["'.$Fld.'"];
+    $CurrStatusTxt= GetEnum($pdo, $EnName,$CurrStatus); 
+  }
+  else {
+    echo ("<br> PDO: ");
+    print_r($PdoArr);
+    die ("<br> Error: record '.$TabName.' is not found ");
+  }
+
+  if ($CurrStatus==$NewStatus) {
+
+    AutoPostFrm ( "'.$TabName.'Card.php", $PdoArr, 2000);
+    echo ("<h2> Now '.$Fld.' = $CurrStatusTxt </h2>");
+  }
+  else {
+
+  if ( $PossibleStatus[$CurrStatus][$NewStatus]==1) {
+    $CheckOk = 0;
+';
+
+foreach ($PossibleStatus as $Val=> $Arr) {
+  $S.="\r\n".'    if ($CurrStatus == '.$Val.') {   // '.$Val.' - '.GetEnum($pdo, $EnName, $Val).'
+        $CheckOk=1;
+    }
+    else ';
+}
+$S.='      $CheckOk=0;
+    if ($CheckOk==1) {
+      MakeAdminRec ($pdo, $_SESSION["login"], "'.$TabName.'", "STS-CH", 
+                        $NewStatus, "'.$Fld.' change $CurrStatusTxt -> $NewStatusTxt");
+
+      $PdoArr["NewStatus"]=$NewStatus;
+
+      $query = "update \"'.$TabName.'\" set \"'.$Fld.'\"=:NewStatus ".
+               "WHERE '.$PK_WH.'";
+
+      $STH = $pdo->prepare($query);
+      $STH->execute($PdoArr);  
+    }
+  }
+  else {
+    die ("<br> Error: Possible status is not ok");
+  }
+  }
+}
+catch (PDOException $e) {
+  echo ("<hr> Line ".__LINE__."<br>");
+  echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
+  print_r($PdoArr);
+  die ("<br> Error: ".$e->getMessage());
+}
+
+$FrmTkn = MakeTkn(1);
+$PdoArr["FrmTkn"]=$FrmTkn;
+
+AutoPostFrm ("'.$TabName.'Card.php", $PdoArr, 10);
+
+?>
+</body>
+</html>
+';
+
+    fwrite($file,$S);
+    fclose($file);
+  }
+}
 ?>

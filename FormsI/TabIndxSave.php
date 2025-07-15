@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-include ("../setup/common.php");
+include ("../setup/common_pg.php");
 
 ?>
 <html>
@@ -13,7 +13,7 @@ include ("../setup/common.php");
 
 CheckLogin1();
 
-CheckRight1 ($mysqli, 'RIGHT_EDIT');
+CheckRight1 ($pdo, 'Admin');
 
 
 //print_r ($_REQUEST);
@@ -23,36 +23,48 @@ $TabName='AdmTabIndx';
 $Frm='Tab';
 
 
-$TabNo= addslashes ($_REQUEST['TabCode']);
-$IndxType= addslashes ($_REQUEST['IndxType']);
-$IndxName= addslashes ($_REQUEST['IndxName']);
-$IndxOldName= addslashes ($_REQUEST['IndxOldName']);
+$TabNo= $_REQUEST['TabCode'];
+$IndxType= $_REQUEST['IndxType'];
+$IndxName= $_REQUEST['IndxName'];
+$IndxOldName= $_REQUEST['IndxOldName'];
+
+$PdoArr = array();
+$PdoArr['IndxName']= $IndxName;
+$PdoArr['TabNo']= $TabNo;
+$PdoArr['IndxType']= $IndxType;
+
+try {
+
 
 
 if ($_REQUEST['New'] !='1' ) {
+  $PdoArr['IndxOldName']= $IndxOldName;
+  
   $Proc='Updated';
-  $query="update $TabName set IndxType='$IndxType',IndxName='$IndxName' ";
-  $query.=" where (TabCode='$TabNo') AND (IndxName='$IndxOldName')";
+  $query="update \"$TabName\" set \"IndxType\"=:IndxType,\"IndxName\"=:IndxName ";
+  $query.=" where (\"TabCode\"=:TabNo) AND (\"IndxName\"=:IndxOldName)";
 }
 else {
-  $Str1='TabCode,IndxType,IndxName';
-  $Str2="'$TabNo', '$IndxType', '$IndxName'";
+  $Str1='"TabCode","IndxType","IndxName"';
+  $Str2=":TabNo, :IndxType, :IndxName";
   $query="insert into $TabName ($Str1) values ($Str2)";
 }
 
 //echo ($query);
-$sql7 = $mysqli->query ($query)
-                 or die("Invalid query:<br>$query<br>" . $mysqli->error);
-
+$STH = $pdo->prepare($query);
+$STH->execute($PdoArr);
 
 // AdmTabNames
 // TabName, TabDescription, TabCode, TabEditable, 
 // AutoCalc, CalcTableName, ChangeDt, Ver
-$query = "update AdmTabNames set  ChangeDt=now() ". 
-         "where (TabCode = '$TabNo')"; 
+$PdoArr = array();
+$PdoArr['TabNo']= $TabNo;
 
-$sql5 = $mysqli->query ($query) 
-          or die("Invalid query:<br>$query<br> Line:".__LINE__." ". $mysqli->error);
+$query = "update \"AdmTabNames\" set  \"ChangeDt\"=now() ". 
+         "where (\"TabCode\" = :TabNo)"; 
+
+$STH = $pdo->prepare($query);
+$STH->execute($PdoArr);
 
 
 
@@ -60,8 +72,17 @@ echo('
 <META HTTP-EQUIV="REFRESH" CONTENT="1;URL='.$Frm.'Card.php?TabCode='.
      $TabNo.'#Indx_'.$IndxName.'">');
 
-echo ('<body><br><b>'.GetStr($mysqli, 'Edit'). '</b> ') ;
+echo ('<body><br><b>'.GetStr($pdo, 'Edit'). '</b> ') ;
 echo ($Proc);
+
+}
+catch (PDOException $e) {
+  echo ("<hr> Line ".__LINE__."<br>");
+  echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
+  print_r($PdoArr);	
+  die ("<br> Error: ".$e->getMessage());
+}
+
 
 ?>
 </body>

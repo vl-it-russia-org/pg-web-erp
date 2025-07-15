@@ -228,31 +228,7 @@ function OutListFooter(&$pdo, $FrmName, &$ArrPostParams, &$PageArr) {
   }
   echo ("</form>");
 }
-//========================================================================
-// Отображет кнопки с POST запросом: Изменение статуса *-ChangeStatus.php
-
-function OutStatusChange (&$pdo, $FrmName, &$ArrPostParams, &$StatusArr) {
-  echo ("<form method=post action='{$FrmName}'>");
-  foreach ($ArrPostParams as $Name=>$Val) {
-    echo ("<input type=hidden name=$Name value='$Val'>");
-  }
-  
-  MakeTkn();
-
-  // $StatusArr -- массив статусов
-  // $StatusArr[0]['NewStatus']=0;
-  // $StatusArr[0]['tit']=GetStr($pdo, 'Открыть'); -- Какая подсказка пользователю
-  // $StatusArr[0]['Txt']=GetStr($pdo, 'Открыть'); -- Что на кнопке писать
-  //-----------------------------------------
-  foreach ($StatusArr as $Indx=>$Arr) {
-      echo ("<td><button name=NewStatus value='{$Arr['NewStatus']}' title='{$Arr['tit']}'>{$Arr['Txt']}</button></td>");
-  }
-  echo ("</form>");
-}
-
 //-----------------------------------------------------------------------------------
-
-
 function BeginProc ($HaveOrd=0, $Chapter='') {  
   
   if ($Chapter=='') {
@@ -868,13 +844,7 @@ function GetExchRate (&$pdo, $CurrCode, $OpDate=''){
 }
 //==========================================================================================
 //-------------------------------------------------------------------------
-function EnumSelection (&$db, $EnumName, $Name, $StdVal1, $Empty=0 ) {
-  $StdVal=$StdVal1;
-  
-  if ( $StdVal=='') {
-    $StdVal='XX';
-  }
-
+function EnumSelection (&$db, $EnumName, $Name, $StdVal, $Empty=0 ) {
   $ResStr = '';
   if ($ResStr =='') {
     $ResStr="<select name=$Name>";
@@ -907,10 +877,8 @@ function EnumSelection (&$db, $EnumName, $Name, $StdVal1, $Empty=0 ) {
               $other = $dp;
               continue;
           }
-          if ($StdVal1!= '') {
-          if ( $dp['EnumVal'] == $StdVal ) {
+          if ( $dp['EnumVal'] === $StdVal ) {
               $Sel= ' selected ';
-          }
           }
           $ResStr.="<option value=".$dp['EnumVal']." $Sel>".
                    $dp['EnumDescription'].'</option>';
@@ -1778,7 +1746,7 @@ function EnumMultiSelect2 (&$pdo, $EnumName, $SelName, $StrVals) {
   //EnumValues
   //EnumName, EnumVal, Lang, EnumDescription
   $query = "select count(*) \"CNT\" from \"EnumValues\" ".
-           " WHERE (\"EnumName\"=:EnumName) and (\"Lang\"=:Lang)";
+           " WHERE (\"EnumName\"=:EnumName) and (\"Lang\"=':Lang)";
 
   $STH = $pdo->prepare($query);
   $STH->execute($PdoArr);
@@ -1823,13 +1791,7 @@ function EnumMultiSelect2 (&$pdo, $EnumName, $SelName, $StrVals) {
           "<td>{$dp2['EnumDescription']}</td>");  
   }
   echo("</tr></table>");
-  }
-  catch (PDOException $e) {
-    echo ("<hr> Line ".__LINE__."<br>");
-    echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
-    print_r($PdoArr);	
-    die ("<br> Error: ".$e->getMessage());
-  }
+
   
 }
 

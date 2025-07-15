@@ -190,6 +190,44 @@ if ($_REQUEST['AddFunc']==10) {
 
   }
 
+  else
+  if ($_REQUEST['AddFunc']==35) {
+    // MasterTab fileds Visibility
+    $Txt='';
+    if (is_array($_REQUEST['FldM'])) {
+      $Txt=json_encode($_REQUEST['FldM']);
+    }
+
+    $Upd=1;
+
+    echo ("<br>Txt=$Txt<br>");
+    $_REQUEST['Param']=$Txt;
+    
+    //==========================================================================
+
+  }
+  else
+  if ($_REQUEST['AddFunc']==60) {
+    // Copy record parameters
+    
+    
+    //print_r($_REQUEST);
+    //die();
+    
+    $Txt='';
+    if (is_array($_REQUEST['FldM'])) {
+      $Txt=json_encode($_REQUEST['FldM']);
+    }
+
+    $Upd=1;
+
+    echo ("<br>Txt=$Txt<br>");
+    $_REQUEST['Param']=$Txt;
+    
+    //==========================================================================
+
+  }
+
 
 ECHO ("<hr>");
 print_r($_REQUEST);

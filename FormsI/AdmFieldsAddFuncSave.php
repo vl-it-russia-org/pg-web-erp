@@ -8,9 +8,11 @@ CheckRight1 ($pdo, 'Admin');
 
 $FldNames=array('Id','TabName','FldName','AddFunc');
 
-$New=addslashes($_REQUEST['New']);
+$New=$_REQUEST['New'];
 
-$Id=addslashes($_REQUEST['Id']);
+$Id=$_REQUEST['Id'];
+
+
 if ($Id==''){ 
     if ($New==1) {  
       //$query = "select MAX(Id) MX FROM AdmFieldsAddFunc ".
@@ -64,6 +66,7 @@ $FN= $_REQUEST['FldName'];
 
 $query = "select * from \"AdmTabFields\" ". 
          "where (\"TypeId\"=:TabCode)and (\"ParamName\"= :FN) "; 
+
 $PdoArr = array();
 $PdoArr['TabCode']= $TabCode;
 $PdoArr['FN']= $FN;
@@ -76,85 +79,9 @@ if ($dp22 = $STH->fetch(PDO::FETCH_ASSOC)) {
 }
 
 
-  //---------------------------- Для автонумерации ---------------
-  //include ("NumSeq.php");
-  //if($_REQUEST['DocNo']=='') {
-  //  $D=$_REQUEST['OpDate'];
-  //  if ($D=='') {
-  //    $_REQUEST['OpDate']=date('Y-m-d');
-  //    $D=$_REQUEST['OpDate'];
-  //  }
-  //  $_REQUEST['DocNo'] = GetNextNo ( $pdo, 'BankOp', $D);
-  //}
-
-
-  $dp=array();
-  $query = "select * FROM \"AdmFieldsAddFunc\" ".
-           "WHERE (\"Id\"='$Id')";
-  $sql2 = $pdo->query ($query)
-                 or die("Invalid query:<br>$query<br>" . $pdo->error);
-  
-  if ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
-    if ($New==1){
-      echo ("<br>");
-      print_r($dp);
-      die ("<br> Error: Already have record ");
-    }
-
-    $Editable=1;
-    if (!$Editable) {
-      die ("<br> Error: Not Editable record ");
-    }      
-  }
-  
-  if ($New==1){
-    
-    
-    $q='insert into AdmFieldsAddFunc(';
-    $S1='';
-    $S2='';
-    $Div='';
-
-    foreach ($FldNames as $F) {
-      $V=addslashes ($_REQUEST[$F]);
-      $S1.=$Div.$F;
-      $S2.="$Div'$V'";
-      $Div=', ';
-    }
-    $q.=$S1.') values ('.$S2.')';
-    
-    $sql2 = $pdo->query ($q)
-                 or die("Invalid query:<br>$q<br>" . $pdo->error);
-    $Id= $pdo->insert_id ;
-    $_REQUEST['Id']= $Id;
-}
-  else {
-    $q='update AdmFieldsAddFunc set ';
-    $S1='';
-    $Div='';
-
-    foreach ($FldNames as $F) {
-      $V1=$_REQUEST[$F];
-      $V=addslashes ($_REQUEST[$F]);
-      if ( $V1 != $dp[$F]) {
-        $S1.=$Div.$F."='$V'";
-        $Div=', ';
-      }
-    }
-    if ( $S1 != '' ) {
-      $q.=$S1.' WHERE ';
-      
-      $S1='';
-
-$V=addslashes ($_REQUEST['OldId']);
-      $S1.="(Id='$V')";
-  
-      $q.= $S1;
-      $sql2 = $pdo->query ($q)
-                 or die("Invalid query:<br>$q<br>" . $pdo->error);
-  
-    }
-  }
+// AdmFieldsAddFunc
+$FldsArr=array( 'Id', 'TabName', 'FldName', 'AddFunc', 'Param');
+$PKArr=array( 'Id');
 
   //=======================================================================
   $AddFunc = $_REQUEST['AddFunc'];
@@ -184,21 +111,37 @@ $V=addslashes ($_REQUEST['OldId']);
       $Div='';
 
       foreach ($ArrList as $V=> $D) {
-        $SE.= $Div.'($dp["'.$FN.'"]='.$V.')';
-        $Div=' and ';
+        $SE.= $Div.'($dp["'.$FN.'"]=='.$V.')';
+        $Div=' OR ';
       }
       
       // AdmTabNames
       // TabName, TabDescription, TabCode, TabEditable, 
       // AutoCalc, CalcTableName, ChangeDt, Ver
-      $SE1=addslashes($SE);
-      
-      $query = "update AdmTabNames set TabEditable='$SE1;' ". 
-               "where (TabCode = '$TabCode')"; 
+      $PdoArr = array();
+      $PdoArr['SE']= $SE.';';      
+      $PdoArr['TabCode']= $TabCode;      
+      $query = "update \"AdmTabNames\" set \"TabEditable\"=:SE ". 
+               "where (\"TabCode\" = :TabCode)"; 
 
-      $sql27 = $pdo->query ($query) 
-                or die("Invalid query:<br>$query<br> Line:".__LINE__." ". $pdo->error);
+      $STH = $pdo->prepare($query);
+      $STH->execute($PdoArr);
+
     }
+  }
+  else
+  if ( $AddFunc == 15) {   //----------------------  Порядок перехода статусов
+    
+    $Txt = '';
+    
+    if (is_array($_REQUEST['PV'])) {
+      $Txt = json_encode ($_REQUEST['PV']);  
+    }
+    $Upd=1;
+  }
+
+  if ($Upd==1) {
+    $_REQUEST['Param']=$Txt;
   }
   else
   if ( $AddFunc == 30) {   // Автоматическая нумерация из какой серии номеров
@@ -207,19 +150,25 @@ $V=addslashes ($_REQUEST['OldId']);
   }
 
   if ($Upd==1) {
-
-    // AdmFieldsAddFunc
-    // Id, TabName, FldName, AddFunc
-    $query = "update AdmFieldsAddFunc set Param='$Txt' ". 
-             "where (Id = '$Id')"; 
-
-    $sql27 = $pdo->query ($query) 
-              or die("Invalid query:<br>$query<br> Line:".__LINE__." ". $pdo->error);
+    $_REQUEST['Param']=$Txt;
   }
+
+  UpdateTable ($pdo, 'AdmFieldsAddFunc', $FldsArr, $_REQUEST, $PKArr, 1, 'Id');
+
+}
+catch (PDOException $e) {
+  echo ("<hr> Line ".__LINE__."<br>");
+  echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
+  print_r($PdoArr);	
+  die ("<br> Error: ".$e->getMessage());
+}
+
   //=======================================================================
   $LNK="TypeId=$TabCode&FldNo=$FldCode";
 
 // TabFldCard.php?TypeId=7000&FldNo=70
+
+
   
 echo ('<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <link rel="stylesheet" type="text/css" href="../style.css">'.

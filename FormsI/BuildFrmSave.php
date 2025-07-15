@@ -11,7 +11,7 @@ CheckLogin1 ();'.
 "\r\n";
 fwrite($file,$S);
 
-$S= "CheckRight1 (\$pdo, 'Admin');\r\n\r\n".
+$S= "\$Editable = CheckFormRight(\$pdo, '$TabName', 'Card');\r\nCheckTkn();\r\n".
 '$FldNames=array(';
 $Div='';
 
@@ -231,22 +231,28 @@ if ( $MasterTab != '') {
     $S.="//------------- Master Tab --------------------------\r\n".
 '  
 $MTab=array();
+$PdoArr = array();
 
-$query = "select * FROM '.$MasterTab.' ".
+$query = "select * FROM \"'.$MasterTab.'\" ".
          "WHERE ';
 
 $MDiv='';
-
+$S_Pdo='';
 foreach ( $MasterFldsCorr as $Indx=>$ArrT) {
-  $S.= $MDiv.'('.$ArrT['FldM'].'=\'$'.$ArrT['FldT'].'\')'; 
+  $S.= $MDiv.'(\"'.$ArrT['FldM'].'\"=:'.$ArrT['FldM'].')'; 
   $MDiv=' and ';
+  
+  $S_Pdo.='$PdoArr["'.$ArrT['FldM'].'"] = $'.$ArrT['FldT'].';'."\r\n";
+
 }
 
 $S.='"; 
-  $sql22 = $pdo->query ($query)
-                 or die("Invalid query:<br>$query<br>" . $pdo->error);
+'.$S_Pdo.'
+
+  $STH = $pdo->prepare($query);
+  $STH->execute($PdoArr);  
   
-  if ($MTab = $sql22->fetch_assoc()) {
+  if ($MTab = $STH->fetch(PDO::FETCH_ASSOC)) {
   }
 ';
 
@@ -338,7 +344,9 @@ $S.='
   
 fwrite($file,$S);
 
-$S='$LNK=\'\';
+$S='
+
+$LNK=\'\';
 ';
 
 
@@ -349,26 +357,23 @@ if ($MasterTab != '') {
 
 $DL='';
 $N=0;
+
+$S='
+$PdoArr=array();
+';
+
+
 foreach ($MasterFldsCorr as $Indx=>$ArrM) {
   $N++;
   $S.= '
-  $V=$_REQUEST[\''.$ArrM['FldT'].'\'];
-  $LNK.="'.$DL.$ArrM['FldM'].'=$V";
-  ';
-  $DL='&';
+  $PdoArr["'.$ArrM['FldM'].'"]=$_REQUEST[\''.$ArrM['FldT'].'\'];';
 }
 
+
+
 $S.="\r\n".
-
-
-
-
-'echo (\'<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8">
-<link rel="stylesheet" type="text/css" href="../style.css">\'.
-\'<META HTTP-EQUIV="REFRESH" CONTENT="1;URL='.$MasterTab.'Card.php?\'.$LNK.\'">\'.
-\'<title>Save</title></head>
-<body>\');
-  
+  '  $PdoArr["FrmTkn"]=MakeTkn(1);
+  AutoPostFrm ("'.$MasterTab.'Card.php", $PdoArr, 10);
   echo(\'<H2>Saved</H2>\');
 ?>
 </body>

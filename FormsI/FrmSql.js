@@ -208,6 +208,45 @@ function FldSelected() {
     insertAtCursor(El1, FldName);
   }  
 }
+//=====================================================================================
+function SelectTFld(Param) {
+
+  CurrIndx = document.getElementById('CurrIndx').value;
+  IndxT    = document.getElementById('IndxT').value;
+  IndxM    = document.getElementById('IndxM').value;
+  
+  if (IndxT==0) {
+    if (IndxM==0) {
+      CurrIndx = CurrIndx+10;  
+      document.getElementById('CurrIndx').value=CurrIndx;
+    
+      document.getElementById('IndxT').value= CurrIndx;
+      document.getElementById('FldT_'+Param).value= CurrIndx;
+    }
+    else {
+      document.getElementById('IndxT').value= 0;
+      document.getElementById('IndxM').value= 0;
+      document.getElementById('FldT_'+Param).value= IndxM;
+    }
+  }
+  else {
+    PV = document.getElementById('FldT_'+Param).value;
+     
+
+    if (Param==IndxT) {
+      document.getElementById('FldT_'+Param).value= '';
+      document.getElementById('IndxT').value= 0;
+    }
+    else {
+      document.getElementById('FldT_'+Param).value= IndxT;
+      document.getElementById('IndxT').value= Param;
+
+    }
+  }
+  return 0;
+}
+//=====================================================================================
+
 
 
 </script>

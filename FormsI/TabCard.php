@@ -26,7 +26,7 @@ ScriptSelectionTabs('AdmTabNames78', 'SelectAdmTabNames.php', 'AdmTabNames', 'Se
 
 include ("TableFunc.php");
 
-print_r($_REQUEST);
+//print_r($_REQUEST);
 
 
 //SELECT 'TabName', 'TabDescription', 'TabCode' FROM  WHERE 1
@@ -49,7 +49,6 @@ echo ("
 ");
   
 try {
-
   
   if ($_REQUEST['New']!=1) { 
     die ("<br> Error table code ");
@@ -191,7 +190,10 @@ echo ("
 <body>
 ");
   
-  
+  //============================================================
+
+
+  //============================================================
 
   echo ('<form method=post action="'.$Frm.'Save.php">'.
         "<input type=hidden Name=OldTabCode Value='$TabNo'>");
@@ -245,6 +247,7 @@ echo ("
   echo('</table></form>'.
        "</td><td>");
 
+
 if ($VDL_TabName!='') {
   //==============================================================
   echo("<hr><h4>".GetStr($pdo, 'AdmTabsAddFunc')."</h4>");
@@ -273,7 +276,7 @@ if ($VDL_TabName!='') {
     echo ("<td align=center>{$dpL['AddFunc']}</td>");
     echo ("<td align=center>");
     echo (GetEnum($pdo, "TabAddFunction", $dpL['AddFunc'])."</td>");
-    echo ("<td>{$dpL['Param']}</td>");
+    echo ("<td>".DivTxt($dpL['Param'], 60)."</td>");
 
     if ( $dpL['AddFunc']==40) {
       $IsAnalitic=1;
@@ -410,7 +413,7 @@ while ($dp = $STH2->fetch(PDO::FETCH_ASSOC)) {
       echo ("<td>{$dp[$Fld]}</td>");
   }
   
-  $Tie=GetFldTieStr($pdo, $TabName5, $FldName);
+  $Tie=DivTxt(GetFldTieStr($pdo, $TabName5, $FldName), 80);
   echo ("<td>$Tie</td>");
 }
 echo ("</tr></table><hr>");

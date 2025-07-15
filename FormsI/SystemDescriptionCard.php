@@ -3,21 +3,20 @@ session_start();
 
 include ("../setup/common_pg.php");
 BeginProc();
-?>
-<html>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-<meta http-equiv="Content-Language" content="ru">
-<link rel="stylesheet" type="text/css" href="../style.css">
-<link rel="icon" href="../favicon.ico" type="image/x-icon">
-<title>SystemDescription Card</title></head>
-<body>
-<?php
+
+$TabName='SystemDescription';
+OutHtmlHeader ($TabName." card");
+
+
 // Checklogin1();
 
+include "../SubHtml.js";
+include "../js_SelAll.js";
+include ("../setup/HtmlTxt.php");
 
-CheckRight1 ($pdo, 'Admin');
 
+$Editable = CheckFormRight($pdo, 'SystemDescription', 'Card');
+CheckTkn();
 $FldNames=array('Id','ParagraphNo','ElType','Description'
           ,'Ord1','ParentId');
 $enFields= array('ElType'=>'PGElType');
@@ -27,11 +26,12 @@ $PdoArr["Id"]=$Id;
 echo("<H3>".GetStr($pdo, 'SystemDescription')."</H3>");
   $dp=array();
   $FullLink="Id=$Id";
-
-  $query = "select * FROM \"SystemDescription\" ".
-           "WHERE (\"Id\"=:Id)";
   
   try {
+  
+  
+  $query = "select * FROM \"SystemDescription\" ".
+           "WHERE (\"Id\"=:Id)";
   
   $STH = $pdo->prepare($query);
   $STH->execute($PdoArr);  
@@ -49,7 +49,8 @@ echo("<H3>".GetStr($pdo, 'SystemDescription')."</H3>");
   
   $New=$_REQUEST['New'];
 
-$Editable=1;
+
+
 if ($Editable) {
   echo ('<form method=post action="SystemDescriptionSave.php">'.
         "<input type=hidden Name='New' value='$New'>");
@@ -79,6 +80,7 @@ if ($Editable) {
 
   $Fld='Description';
   $OutVal= $dp[$Fld];  echo ("<td align=right><label for='Description'>".GetStr($pdo, $Fld).":</label></td><td>");
+  BuildHtmlInput($Fld);
   echo ("<textarea Name='$Fld'  ID='$Fld'  cols=50 rows=3>{$dp[$Fld]}</textarea>");
   echo("</td>");
   echo ("</tr><tr>");
@@ -95,6 +97,7 @@ if ($Editable) {
   echo("</td>");
   echo ("</tr><tr>");
 
+  MakeTkn();
   echo ("<td colspan=2 align=right><input type=submit value='".
          GetStr($pdo, 'Save')."'></td></tr></table></form>");
 } //Editable
@@ -128,9 +131,8 @@ else {
   $Fld='Description';
   $OutVal= $dp[$Fld];
   echo ("<tr><td align=right>".GetStr($pdo, "$Fld").": </td><td>");
-  
-  echo ($OutVal);
-  
+    echo (DivTxt(HtmlTxt($OutVal), 100));
+
   echo("</td></tr>");
   
   $Fld='Ord1';
@@ -150,10 +152,24 @@ else {
   echo("</td></tr>");
     echo ("</table>");
 }
-echo ("  <hr><br><a href='SystemDescriptionList.php'>".GetStr($pdo, 'List')."</a>");
+echo ("  <hr><table><tr><td><a href='SystemDescriptionList.php'>".GetStr($pdo, 'List')."</a></td>");
 if ($Editable)
-  echo (" | <a href='SystemDescriptionDelete.php?$FullLink' onclick='return confirm(\"Delete?\");'>".
-        GetStr($pdo, 'Delete')."</a>");
+  echo ("<td><a href='SystemDescriptionDelete.php?$FullLink' onclick='return confirm(\"Delete?\");'>".
+        GetStr($pdo, 'Delete')."</a></td>");
+
+  if ($New!=1) {
+    $PostArr = array();
+    $PostArr["Id"]=$Id;
+    $StsArr = array();
+    $StsCnt = 0;
+    $StsCnt++;
+    $StsArr[$StsCnt]['NewStatus']= 'Copy';
+    $StsArr[$StsCnt]['tit']= GetStr($pdo, 'CopyRecToNew');
+    $StsArr[$StsCnt]['Txt']= GetStr($pdo, 'CopyRecToNew');
+    OutStatusChange ($pdo, 'SystemDescription-CopyRecord.php', $PostArr, $StsArr);
+  }
+echo ("</tr></table>");
+
 ?>
 </body>
 </html>

@@ -16,6 +16,7 @@ BeginProc();
 <?php
 // Checklogin1();
 include ("../js_SelAll.js");
+include ("ChangeStatusRules.php");
 
 
 CheckRight1 ($pdo, 'Admin');
@@ -94,6 +95,7 @@ $query = "select * from \"AdmTabFields\" ".
 $STH = $pdo->prepare($query);
 $STH->execute($PdoArr);
 
+
 if ($dp22 = $STH->fetch(PDO::FETCH_ASSOC)) {
   $FldCode=$dp22['ParamNo'];
   echo ("<br> Field: <b>$FldCode</b> <b>{$dp22['ParamName']}</b><hr>");
@@ -157,6 +159,42 @@ if ($Editable) {
     echo ( EnumMultiSelect2($pdo, $dp22['AddParam'], $Fld, $CurrVal));
     echo("</td>");
     echo ("</tr><tr>");
+  }
+  else
+  //============================================================================
+  if ($OutVal==15) {
+    //----------------------------------------- Правило изменения статуса
+    $ArrVals=array();
+
+    $Val= $dp['Param'];  // [Editable=;0;10;20;]
+    echo ("<td></td><td>$Val</td></tr>");
+
+    ChangeStatusRules($pdo, $dp, $dp22);
+
+  }
+  else
+  //============================================================================
+  if ($OutVal==17) {
+    //----------------------------------------- Значение статуса для новых записей
+    $ArrVals=array();
+
+    $Val= $dp['Param'];  // [Editable=;0;10;20;]
+    
+    $EnName = $dp['FldName'];
+    if (! empty($dp22['AddParam'])) {
+      $EnName=$dp22['AddParam'];
+    }
+    
+    print_r($dp22);
+    if ($dp22['DocParamType']!= 50) {
+      echo ("<br> Error: Expected field {$dp['FldName']} has ENUM type "); 
+    }
+    else {
+      echo ("<td>".GetStr($pdo, 'SelectDefStatus')." :</td><td>".
+            EnumSelection($pdo, $EnName, 'Param', $Val) ."</td></tr>");
+      
+    }
+
   }
   else
 

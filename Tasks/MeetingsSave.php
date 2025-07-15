@@ -4,18 +4,13 @@ session_start();
 include ("../setup/common_pg.php");
 BeginProc();
 CheckLogin1 ();
-$Editable = CheckFormRight($pdo, 'SystemDescription', 'Card');
-CheckTkn();
-$FldNames=array('Id','ParagraphNo','ElType','Description'
-      ,'Ord1','ParentId');
+CheckRight1 ($pdo, 'Admin');
+
+$FldNames=array('Id','MeetingDate','Subject');
 CheckTkn();
 
-if (empty ($_REQUEST["Ord1"])) {
-  $_REQUEST["Ord1"]=0;
-}
-
-if (empty ($_REQUEST["ParentId"])) {
-  $_REQUEST["ParentId"]=0;
+if (empty ($_REQUEST["MeetingDate"])) {
+  $_REQUEST["MeetingDate"]="1900-01-01";
 }
 $PkArr=array('Id');
 $New=$_REQUEST['New'];
@@ -23,7 +18,7 @@ $PdoArr = array();
 $Id=$_REQUEST['Id'];
 if ($Id==''){ 
     if ($New==1) {  
-      //$query = "select MAX(Id) MX FROM SystemDescription ".
+      //$query = "select MAX(Id) MX FROM Meetings ".
       //         "WHERE ";
       //$sql2 = $pdo->query ($query)
       //               or die("Invalid query:<br>$query<br>" . $pdo->error);
@@ -52,18 +47,16 @@ if ($Id==''){
 
 
   $dp=array();
-  $Res = UpdateTable ($pdo, "SystemDescription", $FldNames, $_REQUEST, $PkArr, 1, "Id");
-
-
+  $Res = UpdateTable ($pdo, "Meetings", $FldNames, $_REQUEST, $PkArr, 1, "Id");
 $LNK='';
 echo ('<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <link rel="stylesheet" type="text/css" href="../style.css">'.
-'<title>SystemDescription Save</title></head>
+'<title>Meetings Save</title></head>
 <body>');
-  echo('<H2>SystemDescription Saved</H2>');
+  echo('<H2>Meetings Saved</H2>');
 
 
-  echo('<form id="autoForm" method="post" action="SystemDescriptionList.php" style="display: none;">');
+  echo('<form id="autoForm" method="post" action="MeetingsList.php" style="display: none;">');
 
   $V=$_POST['Id'];
   echo("<input type=hidden name=Id value='$V'>\r\n");

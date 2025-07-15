@@ -9,53 +9,48 @@ CheckTkn();
 $FldNames=array('Id','ParagraphNo','ElType','Description'
       ,'Ord1','ParentId');
 CheckTkn();
-
-if (empty ($_REQUEST["Ord1"])) {
-  $_REQUEST["Ord1"]=0;
+if ($_REQUEST['NewStatus']!='Copy') { 
+  die ('<br> Error: Copy expected');
 }
+$PdoArr=array();
 
-if (empty ($_REQUEST["ParentId"])) {
-  $_REQUEST["ParentId"]=0;
+if (empty($_REQUEST['Id'])) {
+  die ('<br>Error: Id is empty');
 }
-$PkArr=array('Id');
-$New=$_REQUEST['New'];
-$PdoArr = array();
-$Id=$_REQUEST['Id'];
-if ($Id==''){ 
-    if ($New==1) {  
-      //$query = "select MAX(Id) MX FROM SystemDescription ".
-      //         "WHERE ";
-      //$sql2 = $pdo->query ($query)
-      //               or die("Invalid query:<br>$query<br>" . $pdo->error);
-      //$MX=0;
-      //if ($dp = $sql2->fetch_assoc()) {
-      //  $MX=$dp['MX'];
-      //}
-      //$MX++;
-      //$_REQUEST['Id']=$MX;
-      //$Id=$MX;
-    }
-    else { die ("<br> Error:  Empty Id");}
+$PdoArr['Id']=$_REQUEST['Id'];
+
+$query = "select * FROM \"SystemDescription\" ".
+         "WHERE (\"Id\"=:Id)";
+try{
+  $STH = $pdo->prepare($query);
+  $STH->execute($PdoArr);  
+  
+  $NewId="";
+  if ($db = $STH->fetch(PDO::FETCH_ASSOC)) {
+    $PdoArr=array();
+    $PdoArr['ParagraphNo']=$db['ParagraphNo'];
+    $PdoArr['ElType']=$db['ElType'];
+    $PdoArr['Description']=$db['Description'];
+    $PdoArr['Ord1']=$db['Ord1'];
+    $PdoArr['ParentId']=$db['ParentId'];
+
+    $query="insert into \"SystemDescription\" (\"ParagraphNo\", \"ElType\", \"Description\", \"Ord1\", \"ParentId\") values (:ParagraphNo, :ElType, :Description, :Ord1, :ParentId)";
+
+    $STH = $pdo->prepare($query);
+    $STH->execute($PdoArr);
+    $NewId=$pdo->lastInsertId();
+  }
+  else {
+    die ("<br> Error: Record is not found");
+  }
 }
+catch (PDOException $e) {
+    echo ("<hr> Line ".__LINE__."<br>");
+    echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
+    print_r($PdoArr);	
+    die ("<br> Error: ".$e->getMessage());
+  }
 
-
-  //---------------------------- Для автонумерации ---------------
-  //include ("NumSeq.php");
-  //if($_REQUEST['DocNo']=='') {
-  //  $D=$_REQUEST['OpDate'];
-  //  if ($D=='') {
-  //    $_REQUEST['OpDate']=date('Y-m-d');
-  //    $D=$_REQUEST['OpDate'];
-  //  }
-  //  $_REQUEST['DocNo'] = GetNextNo ( $pdo, 'BankOp', $D);
-  //}
-
-
-  $dp=array();
-  $Res = UpdateTable ($pdo, "SystemDescription", $FldNames, $_REQUEST, $PkArr, 1, "Id");
-
-
-$LNK='';
 echo ('<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <link rel="stylesheet" type="text/css" href="../style.css">'.
 '<title>SystemDescription Save</title></head>

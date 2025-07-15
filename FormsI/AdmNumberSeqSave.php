@@ -51,7 +51,7 @@ try {
     }
 
     $Editable=1;
-    if (!Editable) {
+    if (!$Editable) {
       die ("<br> Error: Not Editable record ");
     }      
   }

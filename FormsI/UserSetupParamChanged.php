@@ -45,7 +45,7 @@ foreach ( $_POST as $K=>$Val) {
   if ($i!== false) {
     $ParamNo = substr($K, $l);
     $Arr['ParamNo']=$ParamNo;
-    $Arr['Value']=$Val;
+    $Arr['Value']=trim($Val);
 
     //echo ("<br>$ParamNo $Val<br>");
     $Res=UpdateTable ($pdo, "ParamVal", $FldsArr, $Arr, $PKArr, 1);

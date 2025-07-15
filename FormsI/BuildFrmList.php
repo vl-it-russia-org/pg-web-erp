@@ -5,14 +5,8 @@ include ("../setup/common_pg.php");
 include ("BuildChangeStatus.php");
 include ("common_func.php");
 
-?>
-<html>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-<link rel="stylesheet" type="text/css" href="style.css">
-<title>Build list</title></head>
-<body>
-<?php
+
+
 CheckRight1 ($pdo, 'RIGHT_EDIT');
 mb_internal_encoding("UTF-8");
 
@@ -60,6 +54,9 @@ else {
 }
 
 echo ("<br> TabName: $TabName ");
+
+OutHtmlHeader ("Build forms for: $TabName $TabNo");
+
 //================================================================
 // AdmTabFields
 // TypeId, ParamNo, ParamName, NeedSeria, DocParamType, NeedBrand, Ord, AddParam, 
@@ -230,12 +227,46 @@ while ($dp2 = $STH->fetch(PDO::FETCH_ASSOC)) {
 //                              List
 //================================================================
 
+
+
 $file = fopen("../Forms/{$TabName}List.php","w");
 
 fwrite($file,"<?php\r\n");
 fwrite($file,"session_start();\r\n");
 
-$S= 'include ("../setup/common_pg.php");
+//==========================================================
+// HTML editor- ?
+//=================================================
+$AddInclude='';
+
+$HtmlFlds=array();
+$HaveHtmlFlds=0;
+// AdmFieldsAddFunc
+// Id, TabName, FldName, AddFunc
+$query = "select * from \"AdmFieldsAddFunc\" ". 
+         "where (\"TabName\" = :TabName) and (\"AddFunc\" =5) order by \"FldName\" "; 
+
+$PdoArr = array();
+$PdoArr['TabName']= $TabName;
+
+$STH = $pdo->prepare($query);
+$STH->execute($PdoArr);
+
+while ($dp25 = $STH->fetch(PDO::FETCH_ASSOC)) {
+  $HaveHtmlFlds=1;
+  $HtmlFlds[$dp25['FldName']]= 1;
+}
+
+if ($HaveHtmlFlds==1) {
+  $AddInclude='
+include ("../setup/HtmlTxt.php");
+';
+}
+
+//==========================================================
+
+
+$S= 'include ("../setup/common_pg.php");'.$AddInclude.'
 BeginProc();
 
 $TabName=\''.$TabName.'\';
@@ -300,8 +331,9 @@ foreach ($Fields as $Fld=>$Arr) {
 $S.=");\r\n".
     $enS.");\r\n".
 
-"CheckRight1 (\$pdo, 'Admin');\r\n\r\n ".
 '
+$Editable = CheckFormRight($pdo, \''.$TabName.'\', \'List\');
+
 CheckTkn();
 $ArrPostParams=array();
 
@@ -490,7 +522,7 @@ $S.="\r\n    ".
 foreach ($Fields as $Fld=>$Arr) {
   $S.="\r\n\r\n".'  $Fld=\''.$Fld.'\';
   ';
-  if ($Fld==$LastPK) {
+  if (0==1) {
     $S.='echo("<td><a href=\''.$TabName.'Card.php?';
 
     $Div='';
@@ -528,7 +560,13 @@ foreach ($Fields as $Fld=>$Arr) {
   ';
   
   }
-  else {
+  else 
+  if ($HtmlFlds[$Fld]==1) {
+    $S.='echo(\'<td>\'.HtmlTxt($dp[$Fld])."</td>");
+  ';
+  }
+  else
+  {
     $S.='echo(\'<td>\'.$dp[$Fld]."</td>");
   ';
   }
@@ -891,9 +929,6 @@ echo ("<br> Make Card");
 include "BuildFrmCard.php";
 
 
-foreach ($StatusFlds as $Fld=>$V) {
-  BuildChangeStatus($pdo, $TabName, $Fld);
-}
 //--------------------------------------------------------------------------------
 //   Save file
 //--------------------------------------------------------------------------------
@@ -1173,144 +1208,8 @@ fclose($file);
 //===============================================================
 //                        SubLines |  Small List
 //===============================================================
-
-$file = fopen("../Forms/{$TabName}SmallList.php","w");
-fwrite($file,"<?php\r\n  die();\r\n");
-fwrite($file,"  echo(\"<hr><h4>\".GetStr(\$pdo, '{$TabName}').\"</h4>\");\r\n");
-
-
-
-  $SF='$'.$PKFields[0];
-  
-  $Div='';
-  $Ord='';
-  $LastPkFld='';
-  foreach ($PKFields as $PK) {
-    $i++;
-    $Ord.=$Div.$PK;
-    $Div=',';
-    $N++;
-    $LastPkFld=$PK;
-  }
-
-  $query = "select * ".
-         "FROM {$TabName} ".
-         "where {$PKFields[0]}='$SF' order by $Ord ";  
-
-$S='  $query = "'.$query.'";'."\r\n";
-fwrite($file,$S);
-
-$S='  $sql2 = $pdo->query ($query)'."\r\n".
-   '            or die("Invalid query:<br>$query<br>" . $pdo->error);'."\r\n";
-fwrite($file,$S);
-
-$S="\r\n  echo('<table><tr class=header>');" ;
-
-foreach ($Fields as $Fld=>$Arr) {
-  $Pass=0;
-  if ($N>1) {
-    if ($Fld== $PKFields[0]) {
-      $Pass=1;
-    }
-  }
-  
-  if ($Pass==0) {      
-    $S.="\r\n  echo('<th>'.GetStr(\$pdo, '$Fld').'</th>');";
-  }
-}
-
-$S.="\r\n".'  $i=0;'."\r\n";
-$S.='  while ($dpL = $sql2->fetch_assoc()) {'."\r\n".
-    '    $i=NewLine($i);'."\r\n";
-
-foreach ($Fields as $Fld=>$Arr) {
-  //echo ("<br><br> -- $Fld: ");
-  //print_r( $Arr );
-
-  $Pass=0;
-  if ($N>1) {
-    if ($Fld== $PKFields[0]) {
-      $Pass=1;
-    }
-  
-  }
-  if ($Pass==0) {      
-    $EndB='</td>';
-    if ($Arr['DocParamType']==50) {
-      $S.="\r\n".'    echo ("<td align=center>");'. "\r\n";
-    }
-    else 
-    if ($Arr['DocParamType']==20) {
-      if ( $Arr['AddParam'] != '') {
-        $S.="\r\n".'    echo ("<td align=right>");'. "\r\n";
-      }
-      else {
-        $S.="\r\n".'    echo ("<td align=center>");'. "\r\n";
-      }
-    }
-    else 
-    if ($Arr['DocParamType']==30) {
-      $S.="\r\n".'    echo ("<td align=center>");'. "\r\n";
-    }
-    else 
-      $S.="\r\n".'    echo ("<td>");'. "\r\n";
-
-    if ($Fld==$LastPkFld) {
-      $S.="\r\n    ".'echo("<a href=\''.$TabName.'Card.php?';
-      $Div1='';
-      foreach ($PKFields as $PK) {
-        $S.=$Div1.$PK.'={$dpL[\''.$PK.'\']}';
-        $Div1='&';
-      }
-      $EndB='</a></td>';
-      $S.='\'>");'. "\r\n";
-    }
-    else {
-      //$S.="\r\n  ".'echo("';
-    }
-    
-    if ($Arr['DocParamType']==50) {
-      $S.= '    echo (GetEnum($pdo, "'.$Arr['AddParam'].'", $dpL[\''.$Fld.'\'])."'.$EndB.'");';    
-    }
-    else
-    if ($Arr['DocParamType']==20) {
-      if ( $Arr['AddParam'] != '') {
-        $S.='    $OW=number_format($dpL[\''.$Fld.'\'], 2, ".", "\'");'."\r\n";
-        $S.='    echo ("$OW'.$EndB.'");'."\r\n";
-      }
-      else 
-        $S.= '    echo ("{$dpL[\''.$Fld.'\']}'.$EndB.'");';    
-    }
-    else
-    if ($Arr['DocParamType']==30) {
-      
-      $S.='    $Ch="";
-      if ($dpL[\''.$Fld.'\']==1) {
-        $Ch=" checked ";  
-      }
-    ';
-      $S.='    echo ("<input type=checkbox Name='.$Fld.' value=1 $Ch></td>");
-      ';
-    }
-    else 
-      $S.= '    echo ("{$dpL[\''.$Fld.'\']}'.$EndB.'");';    
-  }
-}
-$S.="\r\n    ".
-    "\r\n  ".'}'.
-    "\r\n  ".'echo("</tr></table>");'.
-    "\r\n  ".'echo("<a href=\''.$TabName.'Card.php?New=1&'.
-            $PKFields[0].'='.$SF.'\'>".GetStr($pdo, "Add")."</a>");'; 
-
-
-fwrite($file,$S);
-
-$S="\r\n?>
-";
-
-fwrite($file,$S);
-
-fclose($file);
+echo ("<br> Make Small list");
+include "BuildFrmSmallList.php";
 
 
 //================================================================

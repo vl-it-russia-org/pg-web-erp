@@ -18,7 +18,6 @@ BeginProc();
 include ("FrmSql.js");
 // Checklogin1();
 
-
 CheckRight1 ($pdo, 'Admin');
 
 $FldNames=array('Id','TabName','AddFunc','Param'
@@ -120,6 +119,9 @@ if ($Editable) {
   echo ("</tr><tr>");
 
   $AddFunc= $OutVal;
+  
+  echo ("<br>AddFunc = $AddFunc <br>");
+
   if ($AddFunc==10){
     // Master table;
 
@@ -271,11 +273,9 @@ if ($Editable) {
     
       echo ("</td></tr><tr>");
     }
-
-  
   }
   else
-  if ($AddFunc=30){
+  if ($AddFunc==30){
     // Master table fields copy
     $MasterTabName = GetMasterTabName($pdo, $TabName); 
     echo ("<br>MasterTabName: <b>$MasterTabName</b><br>");
@@ -403,18 +403,140 @@ if ($Editable) {
               "<td>{$dp2['ParamNo']}</td><td>{$dp2['ParamName']}</td>".
               "</tr>";
       }
-            
-      echo ("<div id=MasterTab style='overflow-y: scroll; height:230px;'><h3>$MasterTabName</h3>");
-      echo ("<table>$Str</table>".
-             "</div>"); // MasterTab
+    }
+  }
+  else
+  if ($AddFunc==35){
+    // Видимость полей головной таблицы    
+    $MasterTabName = GetMasterTabName($pdo, $TabName); 
+    echo ("<br>MasterTabName: <b>$MasterTabName</b><br>");
 
-      echo ("</div>"); // TabCorresp
+    if ( $MasterTabName!= '') {
+      echo ("</tr><tr>");
+      $MFldVis=array();
+      if (!empty($dp['Param'])) {
+        $MFldVis=json_decode($dp['Param'],1 );
+      }
+      
+      echo ("<td align=right>".GetStr($pdo, 'SetFieldsVis').": </td><td>");
+
+
+      // AdmTabNames
+      // TabName, TabDescription, TabCode, TabEditable, 
+      // AutoCalc, CalcTableName, ChangeDt, Ver, Param
+      $query = "select \"TabCode\",\"TabName\" from \"AdmTabNames\" ". 
+               "where (\"TabName\" ='$MasterTabName')"; 
+
+      $STH = $pdo->prepare($query);
+      $STH->execute();
+      
+      $MTabCode='';
+      if ($dp2 = $STH->fetch(PDO::FETCH_ASSOC)) {
+        $MTabCode = $dp2['TabCode'];
+      }
+
+      //print_r ($MFldVis);
+      
+      // AdmTabFields
+      // TypeId, ParamNo, ParamName, NeedSeria, 
+      // DocParamType, NeedBrand, Ord, AddParam, DocParamsUOM, 
+      // CalcFormula, AutoInc, Description, BinCollation, ShortInfo, 
+      // EnumLong
+      $PdoArr = array();
+      $PdoArr['MTabCode']= $MTabCode;      
+      $query = "select \"ParamNo\", \"ParamName\", \"DocParamType\", \"AddParam\" from \"AdmTabFields\" ". 
+               "where (\"TypeId\" = :MTabCode) order by \"Ord\""; 
+
+      
+      $STH = $pdo->prepare($query);
+      $STH->execute($PdoArr);
+      
+      $Str='';
+      $i=0;
+
+      echo ("<table><tr class=header><th>Field</th><th>Visible</th>");
+     
+      while ($dp2 = $STH->fetch(PDO::FETCH_ASSOC)) {
+        $i=NewLine($i);
+
+        $Val='';
+        $FldN = $dp2['ParamName'];
+        $Checked = '';
+        if (!empty ($MFldVis[$FldN]) ) {
+          $Checked=" checked";
+        }
+        
+        echo ("<td>$FldN</td><td align=center><input type=checkbox Name=FldM[$FldN] value=1$Checked></td>".
+              "</tr>");
+      }
+
+      echo ("</tr></table></div>"); // MasterTab
+
     
       echo ("</td></tr><tr>");
     }
+  }   //-------------------------- 35
+  else
+  if ($AddFunc==60){
+    
+    // --- Возможность копирования записи в новую запись    
+    $FieldsCopyRules = array (); 
+                    // Для полей выставляется несколько возможностей:
+                    // см. Enum CopyRecordOptions
+                     
+    echo ("</tr><tr>");
+    if (!empty($dp['Param'])) {
+      $FieldsCopyRules=json_decode($dp['Param'],1);
+      print_r($FieldsCopyRules);
+    }
+      
+    echo ("<td align=right>".GetStr($pdo, 'CopyRecordOptions').": </td><td>");
 
-  
-  }
+      
+    // AdmTabFields
+    // TypeId, ParamNo, ParamName, NeedSeria, 
+    // DocParamType, NeedBrand, Ord, AddParam, DocParamsUOM, 
+    // CalcFormula, AutoInc, Description, BinCollation, ShortInfo, 
+    // EnumLong
+    $PdoArr = array();
+    $PdoArr['TabCode']= $TabId;      
+    $query = "select \"ParamNo\", \"ParamName\", \"DocParamType\", \"AddParam\" from \"AdmTabFields\" ". 
+             "where (\"TypeId\" = :TabCode) order by \"Ord\""; 
+
+    
+    $STH = $pdo->prepare($query);
+    $STH->execute($PdoArr);
+    
+    $Str='';
+    $i=0;
+
+    echo ("<table><tr class=header><th>Field</th><th colspan=2>Option</th>");
+   
+    while ($dp2 = $STH->fetch(PDO::FETCH_ASSOC)) {
+      $i=NewLine($i);
+
+      $Val='';
+      $AddVal='';
+      $FldN = $dp2['ParamName'];
+      
+      if (empty ($FieldsCopyRules[$FldN]) ) {
+        $Val=10;
+      }
+      else {
+        $Val=$FieldsCopyRules[$FldN]['Val'];
+        $AddVal=$FieldsCopyRules[$FldN]['AddVal'];
+      }
+      
+      echo ("<td>$FldN</td><td align=center>".
+            EnumSelection($pdo, 'CopyRecordOptions', "FldM[$FldN][Val]", $Val).
+            "</td><td><input type=text Name=FldM[$FldN][AddVal] value='$AddVal' size=10></td>");
+      }
+
+      echo ("</tr></table></div>"); // MasterTab
+
+    
+      echo ("</td></tr><tr>");
+  }   //-------------------------- 60
 
 
 

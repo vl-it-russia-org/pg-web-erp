@@ -89,19 +89,17 @@ $Fields=array(  'TabCode', 'TabName', 'TabDescription', 'ChangeDt', 'Ver');
     $WHS = ' where '.$WHS;
   };   
 
-  $query = "select * ".
-           "FROM \"$TabName\" ".
+  $query = "select * FROM \"$TabName\" ".
            "$WHS $ORDS LIMIT $LN OFFSET $BegPos";
 
-  echo ("<br>$query<br>");
+  //echo ("<br>$query<br>");
 
   $queryCNT = "select COUNT(*) \"CNT\" ".
-         "FROM \"$TabName\" ".
-         " $WHS ";
+              "FROM \"$TabName\" $WHS ";
   
   $CntLines=0;
   try {
-    $STH=$pdo->query($queryCNT);
+    $STH=$pdo->prepare($queryCNT);
     $STH->execute($PdoArr); 
 
     if ($dp =  $STH->fetch(PDO::FETCH_ASSOC)) {
@@ -109,6 +107,9 @@ $Fields=array(  'TabCode', 'TabName', 'TabDescription', 'ChangeDt', 'Ver');
     };
   }
   catch (PDOException $e) {
+    echo ("<hr> Line ".__LINE__."<br>");
+    echo ("File ".__FILE__." :<br> $queryCNT<br>PDO Arr:");
+    print_r($PdoArr);	
     die ("<br> Error: ".$e->getMessage());
   }
 
@@ -172,7 +173,7 @@ $MB=1048576;   // 1024*1024
 
 try {
   
-  $STH=$pdo->query($query);
+  $STH=$pdo->prepare($query);
   $STH->execute($PdoArr);
 
   while ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
@@ -210,39 +211,52 @@ try {
       }
     }
     //=========================================================
-    $SZ=0;
+    $SZ='';
     $TN=$dp['TabName'];
-    /*
-    $query = "SELECT data_length + index_length as SZ ". 
-             "FROM information_schema.TABLES ". 
-             "where (table_schema='$db_base') and (table_name='$TN')"; 
+    $PdoArr=array();
+    $PdoArr['TabName']=$TN;
+    
+    try {
+      $query ="SELECT get_table_size(:TabName) as \"SZ\"";
+      //echo ("<br>$query<br>");
 
-    $sql21 = $pdo->query ($query) 
-              or die("Invalid query:<br>$query<br> Line:".__LINE__." ". $pdo->error);
-    if ($dp21 = $sql21->fetch_assoc()) {
-      $SZ1= $dp21['SZ'];
+      $STH1 = $pdo->prepare($query);
+      $STH1->execute($PdoArr);
 
-      if ($SZ1>$MB) {
-        $SZ= number_format($SZ1/$MB, 1, ".", "'").' Mb';
+
+      if ($dp21 = $STH1->fetch(PDO::FETCH_ASSOC)) {
+        $SZ1= $dp21['SZ'];
+
+        if ($SZ1>$MB) {
+          $SZ= number_format($SZ1/$MB, 1, ".", "'").' Mb';
+        }
+        else 
+        if ($SZ1>1024) {
+          $SZ= number_format($SZ1/1024, 1, ".", "'").' Kb';
+        }
+        else 
+          $SZ= number_format($SZ1, 0, ".", "'");
       }
-      else 
-      if ($SZ1>1024) {
-        $SZ= number_format($SZ1/1024, 1, ".", "'").' Kb';
-      }
-      else 
-        $SZ= number_format($SZ1, 0, ".", "'");
-
+    }
+    catch (PDOException $e) {
+      // No table 
+      //echo ("<hr> Line ".__LINE__."<br>");
+      //echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
+      //print_r($PdoArr);	
+      //die ("<br> Error: ".$e->getMessage());
     }
 
+
     echo ("<td align=right>$SZ</td>");
-    echo ("<td><a href='UpdDefFields.php?TabNo=$TC' target=T$TC>Set default</a></td>");
-    */
-    //=========================================================
-    
+    //echo ("<td><a href='UpdDefFields.php?TabNo=$TC' target=T$TC>Set default</a></td>");
+    //-----------------------------------------------------------------------------------
     echo("</tr>");
   };
 }
 catch (PDOException $e) {
+  echo ("<hr> Line ".__LINE__."<br>");
+  echo ("File ".__FILE__." :<br> $query<br>PDO Arr:");
+  print_r($PdoArr);	
   die ("<br> Error: ".$e->getMessage());
 }
 

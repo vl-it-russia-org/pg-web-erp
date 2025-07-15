@@ -118,6 +118,7 @@ if ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
   $FldType= $dp['DocParamType'];
   $EnumLong = $dp['EnumLong'];
   $IsNullPossible = $dp['IsNullPossible'];
+  $NullInDb =0;
   
   $AddParam=$dp['AddParam'];
   $DbType='';
@@ -179,8 +180,17 @@ if ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
     if ($row1=$STH->fetch(PDO::FETCH_ASSOC)) {
 
       echo ("<br> Already have in DB $VDL_TabName : ") ;
-      print_r ($dp1);
+      //print_r ($row1);
       $HaveCol=1;
+      if ( $row1['is_nullable']== 'NO') {
+        $NullInDb = 0;
+        echo ("<br> In DB is not null<br>");
+      }
+      else {
+        $NullInDb = 1;
+        echo ("<br> In DB could be null<br>");
+      }
+
 
       echo ("<br>");
 
@@ -323,8 +333,7 @@ if ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
 
   $STH = $pdo->prepare($query);
   $STH->execute();
-
-
+  
   //========================================================
 
     // SqlLog
@@ -344,8 +353,28 @@ if ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
 
     $STH = $pdo->prepare($query);
     $STH->execute($PdoArr);
+  
+  if ($HaveCol==1) {
+    // Проверяем на NULL
+    if ($NullInDb==0) {
+      if ($IsNullPossible){
+        echo ("<br>IS NOT NULL delete: <br>");
+        $query = "ALTER TABLE \"$VDL_TabName\" ALTER COLUMN \"$FldName\"  DROP NOT NULL";
+        
+        $STH = $pdo->prepare($query);
+        $STH->execute();
+        echo ($query);
+        
+        $query = "insert into \"SqlLog\" (\"User\", \"OpDate\", \"TabNo\", \"Description\", \"SqlText\") ". 
+                 "values (:Usr, now(), :TabNo, :Msg, :q)"; 
 
+        $STH = $pdo->prepare($query);
+        $STH->execute($PdoArr);
 
+      }
+    }
+
+  }
   //========================================================
 
 }

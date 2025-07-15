@@ -4,18 +4,40 @@ session_start();
 include ("../setup/common_pg.php");
 BeginProc();
 CheckLogin1 ();
-$Editable = CheckFormRight($pdo, 'SystemDescription', 'Card');
+$Editable = CheckFormRight($pdo, 'Tasks', 'Card');
 CheckTkn();
-$FldNames=array('Id','ParagraphNo','ElType','Description'
-      ,'Ord1','ParentId');
+$FldNames=array('Id','ShortName','Created','StartDate'
+      ,'Author','Division','Priority','Description','WishDueDate'
+      ,'PlannedWorkload','FactWorkLoad','PlannedDueDate','Status','RespPerson'
+      ,'UserSatisfaction','WaitTill');
 CheckTkn();
 
-if (empty ($_REQUEST["Ord1"])) {
-  $_REQUEST["Ord1"]=0;
+if (empty ($_REQUEST["Created"])) {
+  $_REQUEST["Created"]="1900-01-01";
 }
 
-if (empty ($_REQUEST["ParentId"])) {
-  $_REQUEST["ParentId"]=0;
+if (empty ($_REQUEST["StartDate"])) {
+  $_REQUEST["StartDate"]="1900-01-01";
+}
+
+if (empty ($_REQUEST["WishDueDate"])) {
+  $_REQUEST["WishDueDate"]="1900-01-01";
+}
+
+if (empty ($_REQUEST["PlannedWorkload"])) {
+  $_REQUEST["PlannedWorkload"]=0;
+}
+
+if (empty ($_REQUEST["FactWorkLoad"])) {
+  $_REQUEST["FactWorkLoad"]=0;
+}
+
+if (empty ($_REQUEST["PlannedDueDate"])) {
+  $_REQUEST["PlannedDueDate"]="1900-01-01";
+}
+
+if (empty ($_REQUEST["WaitTill"])) {
+  $_REQUEST["WaitTill"]="1900-01-01";
 }
 $PkArr=array('Id');
 $New=$_REQUEST['New'];
@@ -23,7 +45,7 @@ $PdoArr = array();
 $Id=$_REQUEST['Id'];
 if ($Id==''){ 
     if ($New==1) {  
-      //$query = "select MAX(Id) MX FROM SystemDescription ".
+      //$query = "select MAX(Id) MX FROM Tasks ".
       //         "WHERE ";
       //$sql2 = $pdo->query ($query)
       //               or die("Invalid query:<br>$query<br>" . $pdo->error);
@@ -52,18 +74,18 @@ if ($Id==''){
 
 
   $dp=array();
-  $Res = UpdateTable ($pdo, "SystemDescription", $FldNames, $_REQUEST, $PkArr, 1, "Id");
+  $Res = UpdateTable ($pdo, "Tasks", $FldNames, $_REQUEST, $PkArr, 1, "Id");
 
 
 $LNK='';
 echo ('<html><head><meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <link rel="stylesheet" type="text/css" href="../style.css">'.
-'<title>SystemDescription Save</title></head>
+'<title>Tasks Save</title></head>
 <body>');
-  echo('<H2>SystemDescription Saved</H2>');
+  echo('<H2>Tasks Saved</H2>');
 
 
-  echo('<form id="autoForm" method="post" action="SystemDescriptionList.php" style="display: none;">');
+  echo('<form id="autoForm" method="post" action="TasksList.php" style="display: none;">');
 
   $V=$_POST['Id'];
   echo("<input type=hidden name=Id value='$V'>\r\n");

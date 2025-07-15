@@ -98,7 +98,7 @@ if ($New !='1' ) {
   $query="update \"$TabName\" set ";
   $Div='';
   foreach ( $Fields as $Fld) {
-    $query.=$Div." \"$Fld\"=:$Fld'";
+    $query.=$Div." \"$Fld\"=:$Fld";
     $Div=',';
     $PdoArr[$Fld]= $_REQUEST[$Fld];
   }

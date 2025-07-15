@@ -200,6 +200,24 @@ $STH->execute($PdoArr);
   
   }
 
+  ;
+  echo ("<h4> Indexes:</h4>");
+
+  $query="SELECT indexname, indexdef FROM pg_indexes WHERE tablename = :TabName5";
+  
+  $STH = $pdo->prepare($query);
+  $STH->execute($PdoArr);  // 
+  //echo ("<br> Line ".__LINE__.": $query<br>");
+  $i=0;
+  echo ("<table><tr class=header>".
+        "<th>Index name</th><th>Description</th>");
+  while ($row1=$STH->fetch(PDO::FETCH_ASSOC)) {
+    $i=NewLine($i);
+    echo ("<td>{$row1['indexname']}</td>");
+    echo ("<td>".DivTxt($row1['indexdef'], 80)."</td>");
+  }
+  echo("</tr></table>");  
+
 }
   catch (PDOException $e) {
     echo ("<hr> Line ".__LINE__."<br>");

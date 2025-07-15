@@ -1,45 +1,38 @@
 <?php
 session_start();
 include ("../setup/common_pg.php");
-include ("../setup/HtmlTxt.php");
-
 BeginProc();
 
-?>
-<html>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-<meta http-equiv="Content-Language" content="ru">
-<link rel="stylesheet" type="text/css" href="../style.css">
-<link rel="icon" href="../favicon.ico" type="image/x-icon">
-<title>SystemDescription list</title></head>
-<body>
+$TabName='Meetings';
+OutHtmlHeader ($TabName." list");
 
-<?php
 include ("../js_SelAll.js");
-$TabName='SystemDescription';
-$CurrFile='SystemDescriptionList.php';
-$Frm='SystemDescription';
-$Fields=array('Id','ParagraphNo','ElType'
-      ,'Description','Ord1','ParentId');
-$enFields= array('ElType'=>'PGElType');
-CheckRight1 ($pdo, 'Admin');
 
+$CurrFile='MeetingsList.php';
+$Frm='Meetings';
+$Fields=array('Id','MeetingDate','Subject');
+$enFields= array();
+
+$Editable = CheckFormRight($pdo, 'Meetings', 'List');
+
+CheckTkn();
+$ArrPostParams=array();
+
+// Какие параметры передаем в форму MeetingsCard.php
 $CardArr=array();
 $CardArr['FrmTkn']=MakeTkn(1); 
 
-
- $BegPos = 0;
+$BegPos = 0;
 if (!empty($_REQUEST['BegPos'])) {
   $BegPos = $_REQUEST['BegPos'] +0;
 };
 
-$ORD = '"Ord1"';
+$ORD = '"Id"';
 if ($ORD =='1') {
-$ORD = '"ParagraphNo", "Ord1"';
+$ORD = '"Id"';
   }
   else {
-    $ORD = '"ParagraphNo", "Ord1"';
+    $ORD = '"Id"';
   }
 
   $ORDS = ' order by  '; 
@@ -68,28 +61,19 @@ $ORD = '"ParagraphNo", "Ord1"';
         $WHS.= SetFilter2Fld ( $Fld, $Fltr, $PdoArr );
       }
       $FullRef.='&Fltr_'.$Fld.'='.$Fltr ;
+      $ArrPostParams[$Fld]=$Fltr;
     }
   }
 
 
 try {
-
-  $LN = $_SESSION['LPP'];
-  if ($LN=='') {
-    $LN=20;  
-  };
-
   if ($WHS != '') {
     $WHS = ' where '.$WHS;
-  };   
+  };
 
-  $query = "select * FROM \"SystemDescription\" ".
-           "$WHS $ORDS LIMIT $LN offset $BegPos";
+  $PageArr=array();
 
-  $STH = $pdo->prepare($query);
-  $STH->execute($PdoArr);
-  
-  $queryCNT = "select COUNT(*) \"CNT\" FROM \"SystemDescription\" ".
+  $queryCNT = "select COUNT(*) \"CNT\" FROM \"Meetings\" ".
               "$WHS ";
   
   $STHCnt = $pdo->prepare($queryCNT);
@@ -99,15 +83,21 @@ try {
   if ($dp = $STHCnt->fetch(PDO::FETCH_ASSOC)) {
     $CntLines=$dp['CNT'];  
   };
-  $CurrPage= round($BegPos/$LN)+1;
-  $LastPage= floor($CntLines/$LN)+1;
-
-  echo ('<br><b>'.GetStr($pdo, 'SystemDescription').' '.
-        GetStr($pdo, 'List').
-        '</b> '.$CntLines.' total lines Page <b>'.
-        $CurrPage.'</b> from '. $LastPage) ;
   
-  echo ('<form method=get action="'.$CurrFile.'"><table><tr>');
+  $PageInfo = CalcPageArr($pdo, $PageArr, $CntLines);
+
+  $query = "select * FROM \"Meetings\" ".
+           "$WHS $ORDS ". AddLimitPos($PageArr['BegPos'], $PageArr['LPP']);
+
+  $STH = $pdo->prepare($query);
+  $STH->execute($PdoArr);
+  
+
+  echo ('<br><b>'.GetStr($pdo, 'Meetings').' '.
+        GetStr($pdo, 'List').
+        '</b> '.$PageInfo) ;
+  
+  echo ('<form method=post action="'.$CurrFile.'"><table><tr>');
   $i=0;
   foreach ( $Fields as $Fld) {
     if ($i==4){
@@ -126,15 +116,19 @@ try {
         $_REQUEST[$CN]."'></td>");
     }
   }
+  MakeTkn();
   echo ('<td><button type="submit">Filter</button></td></tr></table></form>');
-  echo ('<hr><table><tr><td><form method=post action="SystemDescriptionCard.php">'.
+  echo ('<hr><table><tr><td><form method=post action="MeetingsCard.php">'.
         '<input type=hidden Name=New VALUE=1>'.
-        "<input type=submit Value='".GetStr($pdo, 'New')."'></form></td><td>" );
+        "<input type=submit Value='".GetStr($pdo, 'New')."'>");
+    MakeTkn();
+    echo("</form></td><td>" );
 //--------------------------------------------------------------------------------
-echo ('<form method=post action="SystemDescriptionGroupOp.php">'.
+echo ('<form method=post action="MeetingsGroupOp.php">'.
         "<input type=submit  Name=OpType Value='".GetStr($pdo, 'Delete')."' 
           onclick='return confirm(\"Delete selected?\");'></td></tr></table>" );
-echo ('<table><tr class="header">');
+MakeTkn();
+echo ('<table class=LongTable><tr class="header">');
 
 echo("<th><input type=checkbox onclick='return SelAll();'></th><th></th>");
 
@@ -146,7 +140,6 @@ echo("</tr>");
 
 $n=0;
 $Cnt=0;
-
 while ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
   $Cnt++;
   $classtype="";
@@ -170,34 +163,18 @@ while ($dp = $STH->fetch(PDO::FETCH_ASSOC)) {
   $CrdNewWindow =GetStr($pdo, 'CrdInNewWnd');
   $CrdHere =GetStr($pdo, 'CrdInCurrWnd');
     echo("<td align=center>
-         <button type=button onclick=\"openFormWithPost('SystemDescriptionCard.php', '$Json', '_self')\" title='$CrdHere'>&#9900;</button>
-         <button type=button onclick=\"openFormWithPost('SystemDescriptionCard.php', '$Json', '_blank')\" title='$CrdNewWindow'>&#9856;</button> </td>");
+         <button type=button onclick=\"openFormWithPost('MeetingsCard.php', '$Json', '_self')\" title='$CrdHere'>&#9900;</button>
+         <button type=button onclick=\"openFormWithPost('MeetingsCard.php', '$Json', '_blank')\" title='$CrdNewWindow'>&#9856;</button> </td>");
 
   $Fld='Id';
-  echo('<td>'.$dp[$Fld]."</td>");
-
-
-  //$Fld='Id';
-  //echo("<td><a href='SystemDescriptionCard.php?Id={$dp['Id']}'>{$dp[$Fld]}</a></td>");
+  echo("<td><a href='MeetingsCard.php?Id={$dp['Id']}'>{$dp[$Fld]}</a></td>");
   
 
-  $Fld='ParagraphNo';
+  $Fld='MeetingDate';
   echo('<td>'.$dp[$Fld]."</td>");
   
 
-  $Fld='ElType';
-  echo("<td>".GetEnum($pdo, 'PGElType', $dp[$Fld])."</td>");
-  
-
-  $Fld='Description';
-  echo('<td>'.HtmlTxt($dp[$Fld])."</td>");
-  
-
-  $Fld='Ord1';
-  echo('<td>'.$dp[$Fld]."</td>");
-  
-
-  $Fld='ParentId';
+  $Fld='Subject';
   echo('<td>'.$dp[$Fld]."</td>");
   echo("</tr>");
 }
@@ -206,29 +183,14 @@ echo("</table>".
      "<input type=submit Name=OpType Value='".GetStr($pdo, 'Delete')."' 
           onclick='return confirm(\"Delete selected?\");'></form>");
 
-$PredPage= $BegPos-$LN;
-if ($PredPage<0)
-  $PredPage = 0; 
-
-$LastPage1= floor($CntLines/$LN) * $LN;
-
 echo('<table><tr class="header">');
 
-if ($CurrPage>1) {
-  echo('<td><a href="'.$CurrFile.$FullRef.'&BegPos=0"> << First page </a></td>' .
-       '<td><a href="'.$CurrFile.$FullRef.'&BegPos='.$PredPage.'"> < Pred Page </a></td>');
-};
+OutListFooter($pdo, $CurrFile, $ArrPostParams, $PageArr);
 
-echo ('<td>Page '.$CurrPage.'</td>');
 
-if ($CurrPage< $LastPage) {
-  echo ('<td><a href="'.$CurrFile.$FullRef.'&BegPos='.($BegPos+$LN).'"> Next Page > > </a></td>');
-};
+echo ('<td><a href="MeetingsPrintXLS.php'.$FullRef.'">Print XLS</a></td>'.
 
-echo ('<td><a href="'.$CurrFile.$FullRef.'&BegPos='.$LastPage1.'"> Last Page '.$LastPage.'>> </a></td>'.
-      '<td><a href="SystemDescriptionPrintXLS.php'.$FullRef.'">Print XLS</a></td>'.
-
-      '<td><a href="Frm-SystemDescription-XlsUpload.php'.$FullRef.'">Upload from XLS</a></td>'.
+      '<td><a href="Frm-Meetings-XlsUpload.php">Upload from XLS</a></td>'.
 
        '</tr></table>');
 
